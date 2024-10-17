@@ -54,7 +54,7 @@ object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
             "minecraft:worldgen/biome" -> cleanBiome(original)
             "minecraft:wolf_variant" -> ElementUtil.ofSingleElement(original) { it.getString("name") == "minecraft:ashen" }
             "minecraft:painting_variant" -> ElementUtil.ofSingleElement(original)
-            "minecraft:damage_type" -> ElementUtil.ofSingleElement(original) { it.getString("name") == "minecraft:generic" }
+            "minecraft:damage_type" -> original
             "minecraft:dimension_type" -> ElementUtil.ofSingleElement(original) { it.getString("name") == "minecraft:overworld" }
             "minecraft:chat_type" -> original
             else -> ElementUtil.empty(type)
