@@ -32,7 +32,7 @@ fun main(args: Array<String>) {
             "  --source <folder>    Point to the output folder of the data generator. The default is \"generated\\data\\minecraft\"",
             "  --output <name>    Specify the file name for the output. The default is \"output.nbt\".",
             "  --filter <ZERO/DATA_PACKETS/TAGS/REGISTRY/NULL>    Presents filter to skip file or tag. The default is \"REGISTRY\"",
-            "  --cleaner <REGISTRY/NULL>    Presents element cleaner to clean some unless information in output. The default is \"REGISTRY\"",
+            "  --cleaner <REGISTRY/NONE>    Presents element cleaner to clean some unless information in output. The default is \"REGISTRY\"",
             "  --compression <NONE/GZIP/ZLIB>    Presents compression method. The default is \"NONE\"",
             "To learn how to generate data through Data Generator.",
             "Please refer to https://zh.minecraft.wiki/w/Tutorial:%E8%BF%90%E8%A1%8C%E6%95%B0%E6%8D%AE%E7%94%9F%E6%88%90%E5%99%A8."
