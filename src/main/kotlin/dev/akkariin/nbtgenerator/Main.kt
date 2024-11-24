@@ -33,7 +33,8 @@ fun main(args: Array<String>) {
             "  --output <name>    Specify the file name for the output. The default is \"output.nbt\".",
             "  --filter <ZERO/DATA_PACKETS/TAGS/REGISTRY/NULL>    Presents filter to skip file or tag. The default is \"REGISTRY\"",
             "  --cleaner <REGISTRY/NONE>    Presents element cleaner to clean some unless information in output. The default is \"REGISTRY\"",
-            "  --compression <NONE/GZIP/ZLIB>    Presents compression method. The default is \"NONE\"",
+            "  --compression <NONE/GZIP/ZLIB>    Presents compression method. The default is \"GZIP\" (Vanilla behavior)",
+            "  --allow-modify <true/false>    Allow filter modify output element. The default is \"false\" (Experimental)",
             "To learn how to generate data through Data Generator.",
             "Please refer to https://zh.minecraft.wiki/w/Tutorial:%E8%BF%90%E8%A1%8C%E6%95%B0%E6%8D%AE%E7%94%9F%E6%88%90%E5%99%A8."
         ).forEach(::println)
@@ -49,5 +50,12 @@ fun main(args: Array<String>) {
     val filter = parser.parse(Arg("filter", PresentFilter.REGISTRY, PresentFilter::valueOf)).filter
     val compression = parser.parse(Arg("compression", PresentCompression.GZIP, PresentCompression::valueOf)).compression
     val cleaner = parser.parse(Arg("cleaner", PresentCleaner.REGISTRY, PresentCleaner::valueOf)).cleaner
-    GenerateTask(source, output, compression, filter, cleaner).generate()
+    val allowModify = parser.parse(Arg("allow-modify", false, String::toBooleanStrict))
+    if (allowModify) {
+        System.err.println("allowModify is a experimental feature! " +
+                "The feature may not work properly or provide invalid output as the version changes. " +
+                "By using it, you are responsible for any issues caused by it!"
+        )
+    }
+    GenerateTask(source, output, allowModify, compression, filter, cleaner).generate()
 }

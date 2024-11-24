@@ -20,5 +20,5 @@ package dev.akkariin.nbtgenerator.filter
 import net.kyori.adventure.nbt.CompoundBinaryTag
 
 fun interface ElementCleaner {
-    fun clean(type: String, original: CompoundBinaryTag): CompoundBinaryTag
+    fun clean(type: String, original: CompoundBinaryTag, allowModify: Boolean): CompoundBinaryTag
 }

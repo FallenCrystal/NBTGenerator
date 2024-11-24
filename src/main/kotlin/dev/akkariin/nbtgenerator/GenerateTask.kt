@@ -30,6 +30,7 @@ import java.io.FileReader
 class GenerateTask(
     private val folder: File,
     private val fileToSave: File,
+    private val allowModify: Boolean,
     private val compression: Compression,
     private val filter: PathFilter?,
     private val cleaner: ElementCleaner?
@@ -39,20 +40,26 @@ class GenerateTask(
 
     fun generate() {
         require(folder.isDirectory) { "Folder is must be a directory!" }
+        if (filter != null) println("Apply $filter as path filter")
         for (folder in folder.listFiles()!!) {
             if (!folder.isDirectory) continue
             searchFolder(null, folder)
         }
         val compound = cleaner?.let {
+            println("Passed original root tags with cleaner $cleaner (allowModify: $allowModify)")
             val cleaned = CompoundBinaryTag.builder()
             root.build().forEach { (key, binaryTag) ->
-                cleaned.put(key, it.clean(key, binaryTag as CompoundBinaryTag))
+                cleaned.put(key, it.clean(key, binaryTag as CompoundBinaryTag, allowModify))
             }
             cleaned.build()
         } ?: root.build()
         println("Generated ${compound.size()} types")
-        if (fileToSave.exists()) fileToSave.delete()
+        if (fileToSave.exists()) {
+            println("Files with name ${fileToSave.toPath()} is already exist. Deleting...")
+            fileToSave.delete()
+        }
         fileToSave.createNewFile()
+        println("Save to file ${fileToSave.toPath()}")
         BinaryTagIO.writer().write(compound, fileToSave.toPath(), compression)
     }
 

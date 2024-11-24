@@ -23,6 +23,7 @@ import net.kyori.adventure.nbt.BinaryTagTypes
 import net.kyori.adventure.nbt.CompoundBinaryTag
 import net.kyori.adventure.nbt.IntBinaryTag
 import net.kyori.adventure.nbt.ListBinaryTag
+import net.kyori.adventure.nbt.StringBinaryTag
 import java.io.File
 
 object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
@@ -49,10 +50,10 @@ object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
         }
     }
 
-    override fun clean(type: String, original: CompoundBinaryTag): CompoundBinaryTag {
+    override fun clean(type: String, original: CompoundBinaryTag, allowModify: Boolean): CompoundBinaryTag {
         return when (type) {
-            "minecraft:worldgen/biome" -> cleanBiome(original)
-            "minecraft:wolf_variant" -> ElementUtil.ofSingleElement(original) { it.getString("name") == "minecraft:ashen" }
+            "minecraft:worldgen/biome" -> cleanBiome(original, allowModify)
+            "minecraft:wolf_variant" -> ElementUtil.ofSingleElement(original) { it.getString("name") == "minecraft:ashen" }.takeUnless { allowModify } ?: modifyWolfVariant(type, original)
             "minecraft:painting_variant" -> ElementUtil.ofSingleElement(original)
             "minecraft:damage_type" -> original
             "minecraft:dimension_type" -> ElementUtil.ofSingleElement(original) { it.getString("name") == "minecraft:overworld" }
@@ -61,7 +62,26 @@ object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
         }
     }
 
-    private fun cleanBiome(original: CompoundBinaryTag): CompoundBinaryTag {
+    private fun modifyWolfVariant(type: String, original: CompoundBinaryTag): CompoundBinaryTag {
+        val compound = CompoundBinaryTag.builder()
+        val ashen = original.getList("value")
+            .map { it as CompoundBinaryTag }
+            .firstOrNull { it.getString("name") == "minecraft:ashen" }
+            ?: throw IllegalArgumentException("Required minecraft:ashen in minecraft:wolf_variant but not found.")
+        compound.put("name", ashen.get("name")!!)
+        compound.putInt("id", 0)
+        val element = CompoundBinaryTag.builder()
+        ashen.getCompound("element").forEach { (k, v) ->
+            if (k == "biomes" && v is StringBinaryTag)
+                element.putString(k, "minecraft:plains")
+            else
+                element.put(k, v)
+        }
+        compound.put("element", element.build())
+        return ElementUtil.ofValues(type, ListBinaryTag.builder(BinaryTagTypes.COMPOUND).add(compound.build()).build())
+    }
+
+    private fun cleanBiome(original: CompoundBinaryTag, allowModify: Boolean): CompoundBinaryTag {
         val value = ListBinaryTag.builder(BinaryTagTypes.COMPOUND)
         var index = 0
         val list = mutableListOf<String>()
@@ -69,7 +89,10 @@ object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
             .map { it as CompoundBinaryTag }
             .associate { it.getString("name") to it.getCompound("element") }
         ) {
-            if (name.startsWith("minecraft:swamp") || name == "minecraft:plains" || name == "minecraft:snowy_taiga") {
+            // Keep only the desired biome.
+            // If allowModify is true. We have modified the biomes required for
+            // minecraft:ashen (minecraft:wolf_variant) in the #modifyWolfVariant method.
+            if (name.startsWith("minecraft:swamp") || name == "minecraft:plains" || (!allowModify && name == "minecraft:snowy_taiga")) {
                 list.add(name)
                 value.add(CompoundBinaryTag
                     .builder()
@@ -77,15 +100,17 @@ object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
                     .put("id", IntBinaryTag.intBinaryTag(index++))
                     .put("element", CompoundBinaryTag.builder().apply {
                         element
-                            .filterNot { it.key == "features" || it.key == "spawners" }
+                            .filter { (key, _) -> key == "features" || key == "spawners" || key == "carvers" } // Clean useless element in protocol
                             .forEach { put(it.key, it.value) }
                     }.build())
                     .build()
                 )
             }
         }
-        require(list.contains("minecraft:plains")) { "Missing minecraft:plains in biome" }
-        require(list.contains("minecraft:swamp")) { "Missing minecraft:swamp in biome" }
+        // Check all biome is exists in tag.
+        require(list.contains("minecraft:plains")) { "Missing minecraft:plains in biome tag" }
+        require(list.contains("minecraft:swamp")) { "Missing minecraft:swamp in biome tag" }
+        require(allowModify || list.contains("minecraft:snowy_taiga")) { "Missing minecraft:snowy_taiga in biome tag" }
         return ElementUtil.ofValues("minecraft:worldgen/biome", value.build())
     }
 
