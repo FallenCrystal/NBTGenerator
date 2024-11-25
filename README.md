@@ -29,17 +29,6 @@
 
 这可能是因为您没有生成, 生成结果不正确或路径指向非文件夹导致的.
 
-要获得可以被正确识别的数据生成器的输出, 请按照以下步骤生成:
+要自动下载并生成, 请在保持网络畅通的情况下 使用 `--version 版本` 参数即可.
 
-  - 打开 Minecraft Launcher, 并等待它加载完毕
-  - 点击配置
-  - 点击创建新配置
-  - 选择您想要的Minecraft版本
-  - 点击版本选项框右上角的 "服务器" 下载按钮
-  - 等待浏览器下载完毕后 将 `server.jar` 移动到和该应用程序的相同目录下
-  - 新建 `generate.bat` 或 `generate.sh` 
-  - 填入 `java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --all`
-  - 双击运行 等待完成
-  - 运行 `NBTGenerator`. 如果没有问题 您将得到一个 `output.nbt`
-
-至少需要 Java 11 才可以运行该应用程序
+至少需要 Java 11 才可以运行该应用程序. 如果使用自动生成, 则需要使用支持目标 Minecraft 所需版本的 Java.
