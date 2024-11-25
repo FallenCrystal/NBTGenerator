@@ -43,5 +43,6 @@ bin/
 .DS_Store
 
 generated/
+download/
 .kotlin/
 *.nbt
