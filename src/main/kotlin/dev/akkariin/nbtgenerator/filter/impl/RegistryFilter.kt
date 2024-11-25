@@ -100,7 +100,7 @@ object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
                     .put("id", IntBinaryTag.intBinaryTag(index++))
                     .put("element", CompoundBinaryTag.builder().apply {
                         element
-                            .filter { (key, _) -> key == "features" || key == "spawners" || key == "carvers" } // Clean useless element in protocol
+                            .filterNot { (key, _) -> key == "features" || key == "spawners" || key == "carvers" } // Clean useless element in protocol
                             .forEach { put(it.key, it.value) }
                     }.build())
                     .build()
