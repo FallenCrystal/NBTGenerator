@@ -47,9 +47,10 @@ fun main(args: Array<String>) {
         ).forEach(::println)
         return
     }
+    val fileSeparator = File.separator
     val parser = ArgsParser(args)
     val runDirectory = File(System.getProperty("user.dir"))
-    var source = File(runDirectory, parser.parse(Arg.of("source", """generated\data\minecraft""")))
+    var source = File(runDirectory, parser.parse(Arg.of("source", """generated${fileSeparator}data${fileSeparator}minecraft""")))
     val version = parser.parse(Arg("version", null as String?) { it })
     if (version != null) {
         val collector = Version.Collector.from(Gson().fromJson(HttpsUtil.readString("https://piston-meta.mojang.com/mc/game/version_manifest.json"), JsonObject::class.java))
@@ -66,7 +67,7 @@ fun main(args: Array<String>) {
                 println("Unknown version $version. Check available version with \"--version list\"")
                 return
             }
-            source = File(download(parsedVersion), """data\minecraft""")
+            source = File(download(parsedVersion), """data${fileSeparator}minecraft""")
             println("Source changed to ${source.absolutePath}")
         }
     }
