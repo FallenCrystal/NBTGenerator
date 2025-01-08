@@ -45,7 +45,7 @@ class GenerateTask(
             if (!folder.isDirectory) continue
             searchFolder(null, folder)
         }
-        val compound = cleaner?.let {
+        var compound = cleaner?.let {
             println("Passed original root tags with cleaner $cleaner (allowModify: $allowModify)")
             val cleaned = CompoundBinaryTag.builder()
             root.build().forEach { (key, binaryTag) ->
@@ -53,6 +53,55 @@ class GenerateTask(
             }
             cleaned.build()
         } ?: root.build()
+        if (compound["minecraft:dimension_type"]
+                ?.let { it as? CompoundBinaryTag }
+                ?.getList("value", BinaryTagTypes.COMPOUND)
+                ?.takeUnless { it.size() == 0 }?.get(0)
+                ?.let { it as? CompoundBinaryTag }
+                ?.getCompound("element")
+                ?.getCompound("monster_spawn_light_level")
+                ?.getCompound("value") != null) {
+            println("Fixing monster_spawn_light_level in minecraft:dimension_type")
+            val builder = CompoundBinaryTag.builder()
+            for ((k, v) in compound) {
+                if (k == "minecraft:dimension_type" && v is CompoundBinaryTag) {
+                    val values = ListBinaryTag.builder(BinaryTagTypes.COMPOUND)
+                    for (value in v.getList("value", BinaryTagTypes.COMPOUND)) {
+                        val originalElement = (value as CompoundBinaryTag).getCompound("element")
+                        val elements = CompoundBinaryTag.builder()
+                        for (element in originalElement) {
+                            if (element.key == "monster_spawn_light_level" && element.value is CompoundBinaryTag) {
+                                //val monsterSpawnLightLevel = element.value as CompoundBinaryTag
+                                //val type = (monsterSpawnLightLevel["type"] as? StringBinaryTag)?.value() ?: "minecraft:uniform"
+                                //val minInclusive = monsterSpawnLightLevel.getCompound("value").getInt("min_inclusive", 0)
+                                //val maxInclusive = monsterSpawnLightLevel.getCompound("value").getInt("max_inclusive", 7)
+                                //elements.put(element.key, CompoundBinaryTag
+                                //    .builder()
+                                //    .putString("type", type)
+                                //    .putInt("min_inclusive", minInclusive)
+                                //    .putInt("max_inclusive", maxInclusive)
+                                //    .build()
+                                //)
+                                elements.putInt(element.key, 0)
+                            } else {
+                                elements.put(element.key, element.value)
+                            }
+                        }
+                        values.add(CompoundBinaryTag
+                            .builder()
+                            .putString("name", value.getString("name"))
+                            .putInt("id", value.getInt("id"))
+                            .put("element", elements.build())
+                            .build()
+                        )
+                    }
+                    builder.put(k, CompoundBinaryTag.builder().putString("type", k).put("value", values.build()).build())
+                } else {
+                    builder.put(k, v)
+                }
+            }
+            compound = builder.build()
+        }
         println("Generated ${compound.size()} types")
         if (fileToSave.exists()) {
             println("Files with name ${fileToSave.toPath()} is already exist. Deleting...")
