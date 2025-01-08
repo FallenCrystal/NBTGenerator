@@ -30,7 +30,7 @@ object ElementUtil {
     fun ofValues(type: String, binaryTag: ListBinaryTag): CompoundBinaryTag {
         return CompoundBinaryTag
             .builder()
-            .putString("name", type)
+            .putString("type", type)
             .put("value", binaryTag)
             .build()
     }
@@ -52,8 +52,8 @@ object ElementUtil {
             .takeUnless { it.size() == 0 }
             ?.map { it as CompoundBinaryTag }
             ?.firstOrNull(predicate)
-            ?.let { ofSingleElement(original.getString("name"), it.getString("name"), it.getCompound("element")) }
-            ?: empty(original.getString("name"))
+            ?.let { ofSingleElement(original.getString("type"), it.getString("name"), it.getCompound("element")) }
+            ?: empty(original.getString("type"))
     }
 
     fun ofSingleElement(original: CompoundBinaryTag): CompoundBinaryTag {
