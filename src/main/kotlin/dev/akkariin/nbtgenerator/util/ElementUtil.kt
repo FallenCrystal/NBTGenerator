@@ -98,7 +98,7 @@ object ElementUtil {
                     values.add(CompoundBinaryTag
                         .builder()
                         .put("name", value.get("name")!!)
-                        .put("id", v.get("id")!!)
+                        .put("id", value.get("id")!!)
                         .put("element", elements.build())
                         .build()
                     )
