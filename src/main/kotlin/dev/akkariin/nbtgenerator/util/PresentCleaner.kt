@@ -19,8 +19,35 @@ package dev.akkariin.nbtgenerator.util
 
 import dev.akkariin.nbtgenerator.filter.ElementCleaner
 import dev.akkariin.nbtgenerator.filter.impl.RegistryFilter
+import net.kyori.adventure.nbt.BinaryTagTypes
+import net.kyori.adventure.nbt.ListBinaryTag
+import net.kyori.adventure.nbt.CompoundBinaryTag
 
 enum class PresentCleaner(val cleaner: ElementCleaner?) {
     NONE(null),
-    REGISTRY(RegistryFilter)
+    REGISTRY(RegistryFilter),
+    SIMPLE_BIOME(ElementCleaner { type, original, _ ->
+        if (type != "minecraft:worldgen/biome") original else {
+            val values = ListBinaryTag.builder(BinaryTagTypes.COMPOUND)
+            for (o in original.getList("value", BinaryTagTypes.COMPOUND).map { it as CompoundBinaryTag }) {
+                CompoundBinaryTag
+                    .builder()
+                    .put("name", o.get("name")!!)
+                    .put("id", o.get("id")!!)
+                    .put("element", CompoundBinaryTag.builder().apply {
+                        for ((k, v) in o.get("element") as CompoundBinaryTag) {
+                            if (RegistryFilter.USELESS_BIOME_ELEMENTS.contains(k)) continue
+                            put(k, v)
+                        }
+                    }.build())
+                    .build()
+                    .let(values::add)
+            }
+            CompoundBinaryTag
+                .builder()
+                .putString("type", type)
+                .put("value", values.build())
+                .build()
+        }
+    })
 }

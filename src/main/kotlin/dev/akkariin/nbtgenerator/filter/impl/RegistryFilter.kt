@@ -41,6 +41,8 @@ object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
     "minecraft:wolf_variant"
 )) {
 
+    val USELESS_BIOME_ELEMENTS = setOf("features", "spawners", "carvers", "spawn_costs")
+
     @Suppress("SpellCheckingInspection")
     override fun filterFile(file: File): Boolean {
         return if (file.isDirectory) {
@@ -100,7 +102,7 @@ object RegistryFilter : ElementCleaner, ListPathFilter(listOf(
                     .put("id", IntBinaryTag.intBinaryTag(index++))
                     .put("element", CompoundBinaryTag.builder().apply {
                         element
-                            .filterNot { (key, _) -> key == "features" || key == "spawners" || key == "carvers" || key == "spawn_costs" } // Clean useless element in protocol
+                            .filterNot { (key, _) -> USELESS_BIOME_ELEMENTS.contains(key) } // Clean useless element in protocol
                             .forEach { put(it.key, it.value) }
                     }.build())
                     .build()
