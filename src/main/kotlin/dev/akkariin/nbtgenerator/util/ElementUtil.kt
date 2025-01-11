@@ -17,6 +17,8 @@
 
 package dev.akkariin.nbtgenerator.util
 
+import net.kyori.adventure.nbt.BinaryTag
+import net.kyori.adventure.nbt.BinaryTagType
 import net.kyori.adventure.nbt.BinaryTagTypes
 import net.kyori.adventure.nbt.CompoundBinaryTag
 import net.kyori.adventure.nbt.ListBinaryTag
@@ -58,5 +60,59 @@ object ElementUtil {
 
     fun ofSingleElement(original: CompoundBinaryTag): CompoundBinaryTag {
         return ofSingleElement(original) { it.getInt("id") == 0 }
+    }
+
+    fun anyOf(compound: CompoundBinaryTag, type: String, elementName: String, predicate: (BinaryTag) -> Boolean): Boolean {
+        val c = (compound.get(type) as? CompoundBinaryTag)
+            ?.getList("value", BinaryTagTypes.COMPOUND)
+            ?.mapNotNull { (it as? CompoundBinaryTag)?.get("element") as? CompoundBinaryTag }
+            ?: return false
+        for (element in c) {
+            if (element.get(elementName)?.let(predicate) ?: continue) {
+                return true
+            }
+        }
+        return false
+    }
+
+    inline fun <reified T : BinaryTag> rewriteElement(
+        original: CompoundBinaryTag,
+        type: String,
+        element: String,
+        elementType: BinaryTagType<T>,
+        func: (T) -> BinaryTag?
+    ): CompoundBinaryTag {
+        val builder = CompoundBinaryTag.builder()
+        for ((k, v) in original) {
+            if (k == type && v is CompoundBinaryTag) {
+                val values = ListBinaryTag.builder(BinaryTagTypes.COMPOUND)
+                for (value in v.getList("value", BinaryTagTypes.COMPOUND).map { it as CompoundBinaryTag }) {
+                    val elements = CompoundBinaryTag.builder()
+                    for (e in value.getCompound("element")) {
+                        if (e.key == element && e.value.type() == elementType) {
+                            (e.value as? T)?.let(func)?.also { elements.put(e.key, it) }
+                        } else {
+                            elements.put(e.key, e.value)
+                        }
+                    }
+                    values.add(CompoundBinaryTag
+                        .builder()
+                        .putString("name", v.getString("name"))
+                        .putInt("id", v.getInt("id"))
+                        .put("element", elements.build())
+                        .build()
+                    )
+                }
+                builder.put(k, CompoundBinaryTag
+                    .builder()
+                    .putString("type", k)
+                    .put("value", values.build())
+                    .build()
+                )
+            } else {
+                builder.put(k, v)
+            }
+        }
+        return builder.build()
     }
 }
