@@ -23,7 +23,7 @@ import dev.akkariin.nbtgenerator.util.HttpsUtil
 import java.util.concurrent.CompletableFuture
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
-data class Version(val id: String, val type: Type, val url: String, val releaseTime: String) {
+data class MinecraftVersion(val id: String, val type: Type, val url: String, val releaseTime: String) {
 
     constructor(json: JsonObject) : this(
         json.get("id").asString,
@@ -47,13 +47,13 @@ data class Version(val id: String, val type: Type, val url: String, val releaseT
         OLD_ALPHA
     }
 
-    class Collector private constructor(val latestRelease: Version, val latestSnapshot: Version, val map: Map<String, Version>) {
+    class Collector private constructor(val latestRelease: MinecraftVersion, val latestSnapshot: MinecraftVersion, val map: Map<String, MinecraftVersion>) {
         fun versions() = map.values
         fun version(name: String) = map[name]
 
         companion object {
             fun from(json: JsonObject): Collector {
-                val map = json.getAsJsonArray("versions").map { Version(it.asJsonObject) }.associateBy { it.id }
+                val map = json.getAsJsonArray("versions").map { MinecraftVersion(it.asJsonObject) }.associateBy { it.id }
                 val latest = json.getAsJsonObject("latest")
                 return Collector(
                     map[latest["release"]!!.asString]!!,
@@ -64,9 +64,9 @@ data class Version(val id: String, val type: Type, val url: String, val releaseT
         }
     }
 
-    data class Data(val version: Version, val javaVersion: JavaVersion, val downloads: Downloads) {
-        constructor(version: Version, json: JsonObject) : this(
-            version,
+    data class Data(val minecraftVersion: MinecraftVersion, val javaVersion: JavaVersion, val downloads: Downloads) {
+        constructor(minecraftVersion: MinecraftVersion, json: JsonObject) : this(
+            minecraftVersion,
             JavaVersion(json.getAsJsonObject("javaVersion")),
             Downloads(json.getAsJsonObject("downloads")),
         )

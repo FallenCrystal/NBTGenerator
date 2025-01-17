@@ -17,8 +17,10 @@
 
 package dev.akkariin.nbtgenerator.args
 
-data class Arg<T>(val name: String, val defaultValue: T, val func: (String)->T) {
+data class Arg<T>(val name: String, val description: String?,  val defaultValue: T, val func: (String)->T) {
     companion object {
-        fun of(name: String, defaultValue: String) = Arg(name, defaultValue) { it }
+        fun of(name: String, description: String?, defaultValue: String) = Arg(name, description, defaultValue) { it }
+        fun of(name: String, description: String?, defaultValue: Boolean) = Arg(name, description, defaultValue) { it.toBooleanStrict() }
+        fun of(name: String, description: String?, defaultValue: Int) = Arg(name, description, defaultValue) { it.toInt() }
     }
 }

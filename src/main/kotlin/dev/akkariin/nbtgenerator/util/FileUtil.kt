@@ -20,6 +20,18 @@ package dev.akkariin.nbtgenerator.util
 import java.io.File
 import java.security.MessageDigest
 
+@Suppress("MemberVisibilityCanBePrivate")
 object FileUtil {
-    fun getSHA1(file: File) = MessageDigest.getInstance("SHA1").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+    fun getSha1(file: File) = MessageDigest.getInstance("SHA1").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+
+    fun String.toFilePath() = this.replace("/", File.separator)
+
+    fun File.hasDirectory(folderName: String): Boolean {
+        if (!this.exists() || !this.isDirectory) return false
+        return File(this, folderName).let { it.exists() && it.isDirectory }
+    }
+
+    fun File.hasDirectories(vararg folders: String) = folders.all { this.hasDirectory(it) }
+
+    fun File.isMatched(vararg names: String) = names.all { name == it }
 }
