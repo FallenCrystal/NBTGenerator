@@ -114,7 +114,7 @@ class RegistryGeneratorTask(folder: File, val output: File) : Task(folder) {
             }
         }
         setStage(saveToFile)
-        BinaryTagIO.writer().write(compound, output.also(File::delete).also(File::createNewFile).toPath())
+        BinaryTagIO.writer().write(compound, output.also(File::delete).also(File::createNewFile).toPath(), BinaryTagIO.Compression.GZIP)
     }
 
     private fun searchFolder(prefix: String?, folder: File,
