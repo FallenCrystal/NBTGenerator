@@ -17,4 +17,9 @@
 
 package dev.akkariin.nbtgenerator.tasks
 
-data class Stage(val name: String, val description: String)
+data class Stage(val name: String, val description: String, val suggestion: () -> Collection<String>? = {
+    listOf(
+        "Check the version. If the version is out of date, update the application.",
+        "Check if there is a similar issue(s) opened on Github. If not, open a new issue for it."
+    )
+})

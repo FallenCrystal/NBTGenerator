@@ -36,11 +36,18 @@ import java.util.concurrent.TimeUnit
 class RegistryGeneratorTask(folder: File, private val output: File) : Task(folder) {
    // Stages
    @Suppress("SpellCheckingInspection")
-   private val lookingForPath = Stage("Looking for path", "Looking worldgen file path for generate codec")
+   private val lookingForPath = Stage("Looking for path", "Looking worldgen file path for generate codec") {
+       listOf(
+           "Make sure that the specified directory is a folder. and have a folder named \"generated\".",
+           "Check which versions of Minecraft of data generator are supported."
+       )
+   }
    private val collectData = Stage("Collecting data", "Collecting registry data from snbt")
    private val applyCleaner = Stage("Cleaner", "Clean useless elements in nbt")
    private val runTest = Stage("Run tests", "Run tests for registry to prevent corrupted output")
-   private val saveToFile = Stage("Save to file", "Save output as gzipped nbt file")
+   private val saveToFile = Stage("Save to file", "Save output as gzipped nbt file") {
+       listOf("Make sure that the application can write to the file at the specified location.")
+   }
 
 
     override fun initialize() = arrayOf(lookingForPath, collectData, applyCleaner, runTest, saveToFile)

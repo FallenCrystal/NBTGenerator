@@ -35,12 +35,27 @@ import java.nio.channels.Channels
 
 class DownloadTask(folder: File) : Task(folder) {
 
+    private val internetSuggestion = listOf(
+        "Check in your browser to see if you can browse the links mentioned in the logs.",
+        "Check if your computer can connect to the internet without a proxy."
+    )
+
     // Stage
-    private val fetchVersions = Stage("Fetching versions", "Fetching versions data")
-    private val fetchData = Stage("Fetching version data", "Fetching specific version data")
-    private val downloadServer = Stage("Download server", "Download specific version of Minecraft server")
-    private val checkEnvironment = Stage("Check environment", "Check if the current environment can run Minecraft.")
-    private val runServer = Stage("Run server", "Run the minecraft server with generator flag")
+    private val fetchVersions = Stage("Fetching versions", "Fetching versions data") {
+        mutableListOf("Check if the entered version of Minecraft exists.").also { it.addAll(internetSuggestion) }
+    }
+    private val fetchData = Stage("Fetching version data", "Fetching specific version data") { internetSuggestion }
+    private val downloadServer = Stage("Download server", "Download specific version of Minecraft server") { internetSuggestion }
+    private val checkEnvironment = Stage("Check environment", "Check if the current environment can run Minecraft.") {
+        listOf("Re-run the task using Java 21. If not. Then install it first.")
+    }
+    private val runServer = Stage("Run server", "Run the minecraft server with generator flag") {
+        listOf(
+            "Check if the vanilla server is printing any errors.",
+            "Make sure that the application has access to the terminal and the location of the current Java runtime.",
+            "Temporarily disable antivirus software. Or temporarily allow the current Java runtime to create processes."
+        )
+    }
 
     var downloadFolder: File? = null
 

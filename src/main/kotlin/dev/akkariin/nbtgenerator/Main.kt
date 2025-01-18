@@ -92,10 +92,18 @@ private fun runTask(task: Task, parser: ArgsParser, skippingTest: Boolean) {
         println("Tasks ${task::class.simpleName} has failed after ${(System.currentTimeMillis() - start).let { if (it >= 1000) it / 1000 else 0 }} second(s).")
         println("")
         if (lastStage != null && stages.isNotEmpty()) {
+            val s = lastStage!!
             println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("Stage:").fg(Ansi.Color.DEFAULT))
-            println("  Name: ${lastStage!!.name}")
-            println("  Description: ${lastStage!!.description}")
-            println("  Position: ${(map[lastStage!!] ?: -2) + 1}/${stages.size}")
+            println("  Name: ${s.name}")
+            println("  Description: ${s.description}")
+            println("  Position: ${(map[s] ?: -2) + 1}/${stages.size}")
+            val suggestion = s.suggestion()
+            if (suggestion != null) {
+                println("  Suggestion(s):")
+                suggestion.forEach { println("  - $it") }
+            } else {
+                println("  Suggestion: N/A")
+            }
         } else {
             println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("Stage:").fgBrightBlack().a(" N/A").fg(Ansi.Color.DEFAULT))
         }
