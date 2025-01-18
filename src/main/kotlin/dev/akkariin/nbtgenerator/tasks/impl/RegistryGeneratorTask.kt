@@ -33,7 +33,7 @@ import java.io.File
 import java.io.FileReader
 import java.util.concurrent.TimeUnit
 
-class RegistryGeneratorTask(folder: File, val output: File) : Task(folder) {
+class RegistryGeneratorTask(folder: File, private val output: File) : Task(folder) {
    // Stages
    @Suppress("SpellCheckingInspection")
    private val lookingForPath = Stage("Looking for path", "Looking worldgen file path for generate codec")
@@ -64,6 +64,8 @@ class RegistryGeneratorTask(folder: File, val output: File) : Task(folder) {
             ?: run {
                 println("What cleaner do you want to apply for output? (Timeout: 5s, Default value for SIMPLE)")
                 println("0: NONE, 1: SIMPLE, 2: FULL")
+                println("TIP: You can re-run the task with new choose at anytime.")
+                println("TIP: You can run application with \"--cleaner [choose]\" parameters.")
                 getInput(5, TimeUnit.SECONDS, "1") ?: "1"
             }
         ) {
