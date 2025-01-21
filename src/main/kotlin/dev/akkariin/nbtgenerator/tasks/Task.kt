@@ -18,9 +18,10 @@
 package dev.akkariin.nbtgenerator.tasks
 
 import dev.akkariin.nbtgenerator.args.ArgsParser
-import dev.akkariin.nbtgenerator.inputFuture
 import org.fusesource.jansi.Ansi
 import java.io.File
+import java.util.*
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
@@ -47,10 +48,10 @@ abstract class Task(val folder: File) {
         this.stageListener = listener
     }
 
-    fun getInput() = try { inputFuture().get() } catch (e: Exception) { null }
+    fun getInput() = CompletableFuture.supplyAsync { try { Scanner(System.`in`).nextLine() } catch (e: Exception) { null } }!!
 
     fun getInput(timeout: Long, timeUnit: TimeUnit, defaultValue: String): String? {
-        val future = inputFuture()
+        val future = getInput()
         return try {
             future.get(timeout, timeUnit)
         } catch (e: TimeoutException) {

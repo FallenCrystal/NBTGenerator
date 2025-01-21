@@ -26,38 +26,10 @@ import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 import java.io.File
-import java.util.*
-import java.util.concurrent.CompletableFuture
 import kotlin.system.exitProcess
-
-private val inputQueue: ArrayDeque<CompletableFuture<String?>> = ArrayDeque()
-private var stopped = false
-private val inputThread = Thread {
-    val scanner = Scanner(System.`in`)
-    while (!stopped) {
-        val input = try {
-            scanner.nextLine()
-        } catch (_: Exception) {
-            null
-        }
-        var future: CompletableFuture<String?>? = null
-        while (inputQueue.isNotEmpty()) {
-            future = inputQueue.pollFirst()
-            if (future == null || future.isCancelled || future.isCompletedExceptionally || future.isDone) {
-                future = null
-            } else break
-        }
-        future?.complete(input)
-    }
-}.apply {
-    name = "InputWaiter"
-    priority = Thread.MIN_PRIORITY
-    isDaemon = true
-}
 
 fun main(args: Array<String>) {
     AnsiConsole.systemInstall()
-    inputThread.start()
     val parser = ArgsParser(args)
     val version = parser.parse(Arg.of("version", "Specify the Minecraft version to download.", "null"))
     var folder = File(System.getProperty("user.dir"))
@@ -136,5 +108,3 @@ private fun runTask(task: Task, parser: ArgsParser, skippingTest: Boolean) {
     println(Ansi.ansi().fg(Ansi.Color.GREEN).a("Task successfully after ${(System.currentTimeMillis() - start).let { if (it >= 1000) it / 1000 else 0 }} second(s).").fg(Ansi.Color.DEFAULT))
     println("")
 }
-
-fun inputFuture() = CompletableFuture<String?>().apply(inputQueue::addLast)
