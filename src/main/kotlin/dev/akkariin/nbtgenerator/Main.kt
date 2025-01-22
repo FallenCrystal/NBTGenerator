@@ -104,6 +104,10 @@ private fun runTask(task: Task, parser: ArgsParser, skippingTest: Boolean) {
         }
         exitProcess(-1)
     }
+    if (lastStage != null) {
+        val position = (map[lastStage!!] ?: -2) + 1
+        if (position < stages.size) println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("Task skipped ${stages.size - position} stage(s).").fg(Ansi.Color.DEFAULT))
+    }
     println("========================================")
     println(Ansi.ansi().fg(Ansi.Color.GREEN).a("Task successfully after ${(System.currentTimeMillis() - start).let { if (it >= 1000) it / 1000 else 0 }} second(s).").fg(Ansi.Color.DEFAULT))
     println("")
