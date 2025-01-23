@@ -17,7 +17,7 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class RailShape : IRailShape {
+enum class RailShape {
     NORTH_SOUTH,
     EAST_WEST,
     ASCENDING_EAST,
@@ -29,10 +29,16 @@ enum class RailShape : IRailShape {
     NORTH_WEST,
     NORTH_EAST;
 
-    override fun getRailShape() = this
-
     companion object {
         val names = entries.map { it.name.lowercase() }
+        val variantNames = arrayOf(
+            NORTH_SOUTH,
+            EAST_WEST,
+            ASCENDING_EAST,
+            ASCENDING_WEST,
+            ASCENDING_NORTH,
+            ASCENDING_SOUTH
+        ).map { it.name.lowercase() }
 
         fun parse(input: String) = when (input) {
             "north_south" -> NORTH_SOUTH

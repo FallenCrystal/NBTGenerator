@@ -15,25 +15,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.akkariin.nbtgenerator.block.property
+package dev.akkariin.nbtgenerator.block.definition
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+
+@Suppress("unused")
+interface ExperienceDefinition {
+    data class Fixed(val value: Int): ExperienceDefinition
+    data class Common(val type: String, val maxInclusive: Int, val minInclusive: Int): ExperienceDefinition
 
     companion object {
-        fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+        fun parse(json: JsonElement): ExperienceDefinition {
+            if (json is JsonObject) {
+                return Common(
+                    json["type"].asString,
+                    json["max_inclusive"].asInt,
+                    json["min_inclusive"].asInt,
+                )
+            }
+            return Fixed(json.asInt)
         }
     }
 }

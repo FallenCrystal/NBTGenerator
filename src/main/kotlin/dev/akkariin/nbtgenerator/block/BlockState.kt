@@ -38,7 +38,7 @@ class BlockState(
         return Optional.empty()
     }
 
-    override fun toString() = "BlockState(name=$name, id=$id, default=$default, properties=[${map.entries.joinToString { "${it.key.name()}=${it.value}" }}])"
+    override fun toString() = "BlockState(id=$id, properties=[${map.entries.joinToString { "${it.key.name()}=${it.value}" }}])"
 
     fun equals(other: BlockState, ignoreDefault: Boolean, ignoreId: Boolean): Boolean {
         if (other.name != this.name) return false

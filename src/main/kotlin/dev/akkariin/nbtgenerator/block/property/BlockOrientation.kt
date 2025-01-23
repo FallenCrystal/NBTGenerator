@@ -17,23 +17,35 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+enum class BlockOrientation {
+    DOWN_EAST,
+    DOWN_NORTH,
+    DOWN_SOUTH,
+    DOWN_WEST,
+    UP_EAST,
+    UP_NORTH,
+    UP_SOUTH,
+    UP_WEST,
+    WEST_UP,
+    EAST_UP,
+    NORTH_UP,
+    SOUTH_UP;
 
     companion object {
         fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+            "down_east" -> DOWN_EAST
+            "down_north" -> DOWN_NORTH
+            "down_south" -> DOWN_SOUTH
+            "down_west" -> DOWN_WEST
+            "up_east" -> UP_EAST
+            "up_north" -> UP_NORTH
+            "up_south" -> UP_SOUTH
+            "up_west" -> UP_WEST
+            "west_up" -> WEST_UP
+            "east_up" -> EAST_UP
+            "north_up" -> NORTH_UP
+            "south_up" -> SOUTH_UP
+            else -> throw IllegalArgumentException("Unknown block orientation: $input")
         }
     }
 }

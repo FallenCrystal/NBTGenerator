@@ -24,22 +24,14 @@ interface BlockDefinition<T : Any> {
     fun type(): Class<T>
 
     companion object {
-        fun createString(name: String) = object : BlockDefinition<String> {
+        fun createString(name: String) = create(name, JsonElement::getAsString)
+        fun createInt(name: String) = create(name, JsonElement::getAsInt)
+        fun createDouble(name: String) = create(name, JsonElement::getAsDouble)
+        fun createBoolean(name: String) = create(name, JsonElement::getAsBoolean)
+        inline fun <reified T : Any> create(name: String, crossinline func: (JsonElement) -> T) = object : BlockDefinition<T> {
             override val name = name
-            override fun parse(element: JsonElement) = element.asString
-            override fun type() = String::class.java
-        }
-
-        fun createInt(name: String) = object : BlockDefinition<Int> {
-            override val name = name
-            override fun parse(element: JsonElement) = element.asInt
-            override fun type() = Int::class.java
-        }
-
-        fun createDouble(name: String) = object : BlockDefinition<Double> {
-            override val name = name
-            override fun parse(element: JsonElement) = element.asDouble
-            override fun type() = Double::class.java
+            override fun parse(element: JsonElement) = func(element)
+            override fun type() = T::class.java
         }
     }
 }

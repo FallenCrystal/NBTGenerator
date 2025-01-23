@@ -15,25 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.akkariin.nbtgenerator.block.property
+package dev.akkariin.nbtgenerator.block.definition
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 
-    companion object {
-        fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
-        }
-    }
+data class ParticleDefinition(val type: String) {
+    constructor(json: JsonElement): this((json as JsonObject)["type"].asString)
 }

@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.akkariin.nbtgenerator.block.property
+package dev.akkariin.nbtgenerator.block.definition
 
-interface IRailShape {
-    fun getRailShape(): RailShape
-}
+class PropertiesDefinition // Always empty

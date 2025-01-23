@@ -17,23 +17,23 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+enum class TrialSpawnerState {
+    INACTIVE,
+    WAITING_FOR_PLAYERS,
+    ACTIVE,
+    WAITING_FOR_REWARD_EJECTION,
+    EJECTING_REWARD,
+    COOLDOWN;
 
     companion object {
         fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+            "inactive" -> INACTIVE
+            "waiting_for_players" -> WAITING_FOR_PLAYERS
+            "active" -> ACTIVE
+            "waiting_for_reward_ejection" -> WAITING_FOR_REWARD_EJECTION
+            "ejecting_reward" -> EJECTING_REWARD
+            "cooldown" -> COOLDOWN
+            else -> throw IllegalArgumentException("Unknown trial spawner state: $input")
         }
     }
 }

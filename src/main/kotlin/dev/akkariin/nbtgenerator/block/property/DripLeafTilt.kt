@@ -17,23 +17,19 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+enum class DripLeafTilt {
+    NONE,
+    UNSTABLE,
+    PARTIAL,
+    FULL;
 
     companion object {
         fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+            "none" -> NONE
+            "unstable" -> UNSTABLE
+            "partial" -> PARTIAL
+            "full" -> FULL
+            else -> throw IllegalArgumentException("Unknown drip leaf tilt type: $input")
         }
     }
 }

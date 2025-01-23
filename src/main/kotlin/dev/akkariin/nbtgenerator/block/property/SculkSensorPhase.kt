@@ -17,23 +17,17 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+enum class SculkSensorPhase {
+    INACTIVE,
+    ACTIVE,
+    COOLDOWN;
 
     companion object {
         fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+            "inactive" -> INACTIVE
+            "active" -> ACTIVE
+            "cooldown" -> COOLDOWN
+            else -> throw IllegalArgumentException("Unknown sculk sensor phase type: $input")
         }
     }
 }

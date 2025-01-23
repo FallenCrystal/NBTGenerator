@@ -17,23 +17,21 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+enum class StructureBlockMode {
+    SAVE,
+    LOAD,
+    CORNER,
+    DATA;
 
     companion object {
+        val names = entries.map { it.name.lowercase() }
+
         fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+            "save" -> SAVE
+            "load" -> LOAD
+            "corner" -> CORNER
+            "data" -> DATA
+            else -> throw IllegalArgumentException("Unknown structure block mode: $input")
         }
     }
 }

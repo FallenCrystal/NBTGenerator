@@ -24,4 +24,6 @@ data class SuspiciousStewEffects(
     val id: String
 ) {
     constructor(json: JsonObject) : this(json.get("duration").asInt, json.get("id").asString)
+
+    class List(collection: Collection<SuspiciousStewEffects>) : ArrayList<SuspiciousStewEffects>(collection)
 }

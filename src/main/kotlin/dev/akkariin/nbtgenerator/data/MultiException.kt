@@ -15,25 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.akkariin.nbtgenerator.block.property
+package dev.akkariin.nbtgenerator.data
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
-
-    companion object {
-        fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
-        }
-    }
+class MultiException(override val message: String = "Multi exception throws") : RuntimeException(message) {
+    private val exceptions = mutableListOf<Throwable>()
+    fun addException(e: Throwable) = exceptions.add(e)
+    fun getExceptions(): List<Throwable> = exceptions
+    fun isEmpty() = exceptions.isEmpty()
+    fun isNotEmpty() = !isEmpty()
 }

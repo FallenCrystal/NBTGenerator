@@ -19,13 +19,16 @@ package dev.akkariin.nbtgenerator
 
 import dev.akkariin.nbtgenerator.args.Arg
 import dev.akkariin.nbtgenerator.args.ArgsParser
+import dev.akkariin.nbtgenerator.data.MultiException
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
 import dev.akkariin.nbtgenerator.tasks.impl.DownloadTask
+import dev.akkariin.nbtgenerator.tasks.impl.ParseBlockTask
 import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 import java.io.File
+import java.util.Scanner
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -33,7 +36,6 @@ fun main(args: Array<String>) {
     val parser = ArgsParser(args)
     val version = parser.parse(Arg.of("version", "Specify the Minecraft version to download.", "null"))
     var folder = File(System.getProperty("user.dir"))
-    val output = File(folder, parser.parse(Arg.of("output", "Output file name", if (version == "null") "output.nbt" else version.replace(".", "_") + ".nbt")))
     val skippingTest = parser.parse(Arg.of("skipTests", "", false))
     if (version != "null") {
         val task = DownloadTask(folder)
@@ -41,7 +43,31 @@ fun main(args: Array<String>) {
         task.downloadFolder?.apply { folder = this }
         println("Redirect generated folder to $folder")
     }
-    runTask(RegistryGeneratorTask(File(folder, "generated"), output), parser, skippingTest)
+    when (val task = parser.parse(Arg.of("task", "Task to execute.", "null"))
+        .takeUnless { it == "null" }
+        ?: run {
+            println("Select a task to continue.")
+            println("[1|registry] - RegistryGeneratorTask")
+            println("[2|blocks] - ParseBlockTask")
+            try { Scanner(System.`in`).nextLine() } catch (e: Exception) { null }
+        }
+    ) {
+        "1", "registry" -> {
+            runTask(RegistryGeneratorTask(
+                File(folder, "generated"),
+                File(folder, parser.parse(Arg.of("output", "Output file name", if (version == "null") "output.nbt" else version.replace(".", "_") + ".nbt")))),
+                parser,
+                skippingTest
+            )
+        }
+        "2", "blocks" -> {
+            runTask(ParseBlockTask(File(folder, "generated"), false), parser, skippingTest)
+        }
+        else -> {
+            println("Unknown input $task. Exiting.")
+        }
+    }
+    //runTask(RegistryGeneratorTask(File(folder, "generated"), output), parser, skippingTest)
     AnsiConsole.systemUninstall()
 }
 
@@ -80,8 +106,8 @@ private fun runTask(task: Task, parser: ArgsParser, skippingTest: Boolean) {
             println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("Stage:").fgBrightBlack().a(" N/A").fg(Ansi.Color.DEFAULT))
         }
         println("")
-        var e: Throwable? = t
-        while (e != null) {
+
+        fun print(e: Throwable) {
             println("Caused by: ${e::class.java.name}: ${e.message ?: "null"}")
             println("Stacktrace:")
             for (stack in e.stackTrace) {
@@ -100,7 +126,16 @@ private fun runTask(task: Task, parser: ArgsParser, skippingTest: Boolean) {
                 )
             }
             println("")
-            e = e.cause
+            e.cause?.let(::print)
+        }
+
+        if (t is MultiException) {
+            println(Ansi.ansi().fg(Ansi.Color.RED).a("Multi exceptions thrown!").fg(Ansi.Color.DEFAULT))
+            println("")
+            print(t)
+            t.getExceptions().forEach(::print)
+        } else {
+            print(t)
         }
         exitProcess(-1)
     }

@@ -17,23 +17,19 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
+enum class RedstoneDirection {
     UP,
-    DOWN;
+    SIDE,
+    NONE;
 
     companion object {
+        val names = entries.map { it.name.lowercase() }
+
         fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
             "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+            "side" -> SIDE
+            "none" -> NONE
+            else -> throw IllegalArgumentException("Unknown redstone direction: $input")
         }
     }
 }

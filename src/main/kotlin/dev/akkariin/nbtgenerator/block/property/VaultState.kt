@@ -17,23 +17,19 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+enum class VaultState {
+    INACTIVE,
+    ACTIVE,
+    UNLOCKING,
+    EJECTING;
 
     companion object {
         fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+            "inactive" -> INACTIVE
+            "active" -> ACTIVE
+            "unlocking" -> UNLOCKING
+            "ejecting" -> EJECTING
+            else -> throw IllegalArgumentException("Unknown vault state: $input")
         }
     }
 }

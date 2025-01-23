@@ -19,9 +19,8 @@ package dev.akkariin.nbtgenerator.block.definition
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import java.lang.reflect.Modifier
 
-@Suppress("unused")
+@Suppress("MemberVisibilityCanBePrivate")
 object BlockDefinitions {
     val type = BlockDefinition.createString("type")
     val blockSetType = BlockDefinition.createString("block_set_type")
@@ -30,10 +29,40 @@ object BlockDefinitions {
     val fruit = BlockDefinition.createString("fruit")
     val seed = BlockDefinition.createString("seed")
     val stem = BlockDefinition.createString("stem")
+    val color = BlockDefinition.createString("color")
+    val candle = BlockDefinition.createString("candle")
+    val dead = BlockDefinition.createString("dead")
+    val feature = BlockDefinition.createString("feature")
+    val concrete = BlockDefinition.createString("concrete")
+    val weatheringState = BlockDefinition.createString("weathering_state")
+    val plant = BlockDefinition.createString("plant")
+    val kind = BlockDefinition.createString("kind")
+    val growsOn = BlockDefinition.createString("grows_on")
+    val host = BlockDefinition.createString("host")
+    val potted = BlockDefinition.createString("potted")
+    val interactions = BlockDefinition.createString("interactions")
+    val precipitation = BlockDefinition.createString("precipitation")
+    val attachedStem = BlockDefinition.createString("attached_stem")
+    val fallingDustColor = BlockDefinition.createString("falling_dust_color")
+    val fluid = BlockDefinition.createString("fluid")
+    val particleOptions = BlockDefinition.createString("particle_options")
+    val brushCompletedSound = BlockDefinition.createString("brush_completed_sound")
+    val brushSound = BlockDefinition.createString("brush_sound")
+    val turnsInto = BlockDefinition.createString("turns_into")
+    val hook = BlockDefinition.createString("hook")
+
     val ticksToStayPressed = BlockDefinition.createInt("ticks_to_stay_pressed")
+    val fireDamage = BlockDefinition.createInt("fire_damage")
+    val chance = BlockDefinition.createInt("chance")
+    val maxWeight = BlockDefinition.createInt("max_weight")
 
     val aabbOffset = BlockDefinition.createDouble("aabb_offset")
     val height = BlockDefinition.createDouble("height")
+
+    val spawnParticles = BlockDefinition.createBoolean("spawn_particles")
+    val automatic = BlockDefinition.createBoolean("automatic")
+    val open = BlockDefinition.createBoolean("open")
+    val sticky = BlockDefinition.createBoolean("sticky")
 
     val baseState = object : BlockDefinition<BaseState> {
         override val name = "base_state"
@@ -41,17 +70,59 @@ object BlockDefinitions {
         override fun type() = BaseState::class.java
     }
 
-    val suspiciousStewEffects = object : BlockDefinition<SuspiciousStewEffects> {
-        override val name = "suspicious_stew_effects"
-        override fun parse(element: JsonElement) = SuspiciousStewEffects(element as JsonObject)
-        override fun type() = SuspiciousStewEffects::class.java
+    val suspiciousStewEffects = BlockDefinition.create("suspicious_stew_effects") {
+        SuspiciousStewEffects.List(it.asJsonArray.map { SuspiciousStewEffects(it as JsonObject) })
     }
 
-    val map by lazy { BlockDefinitions::class
-        .java
-        .fields
-        .filter { BlockDefinition::class.java.isAssignableFrom(it.type) }
-        .map { (it.get(if (Modifier.isStatic(it.modifiers)) null else this)) as BlockDefinition<*> }
-        .associateBy { it.name }
-    }
+    val properties = BlockDefinition.create("properties") { PropertiesDefinition() }
+
+    val experience = BlockDefinition.create("experience", ExperienceDefinition::parse)
+
+    val particle = BlockDefinition.create("particle") { ParticleDefinition(it) }
+
+    val map = arrayOf(
+        type,
+        blockSetType,
+        woodType,
+        tree,
+        fruit,
+        seed,
+        stem,
+        color,
+        candle,
+        dead,
+        feature,
+        concrete,
+        weatheringState,
+        plant,
+        kind,
+        growsOn,
+        host,
+        potted,
+        interactions,
+        precipitation,
+        attachedStem,
+        fallingDustColor,
+        fluid,
+        particleOptions,
+        brushCompletedSound,
+        brushSound,
+        turnsInto,
+        hook,
+        ticksToStayPressed,
+        fireDamage,
+        chance,
+        maxWeight,
+        aabbOffset,
+        height,
+        spawnParticles,
+        automatic,
+        open,
+        sticky,
+        baseState,
+        suspiciousStewEffects,
+        properties,
+        experience,
+        particle
+    ).associateBy { it.name }
 }

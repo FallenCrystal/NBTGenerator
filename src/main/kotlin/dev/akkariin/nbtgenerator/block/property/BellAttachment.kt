@@ -17,23 +17,19 @@
 
 package dev.akkariin.nbtgenerator.block.property
 
-enum class BlockFacing {
-    NORTH,
-    SOUTH,
-    WEST,
-    EAST,
-    UP,
-    DOWN;
+enum class BellAttachment {
+    FLOOR,
+    CEILING,
+    SINGLE_WALL,
+    DOUBLE_WALL;
 
     companion object {
         fun parse(input: String) = when (input) {
-            "north" -> NORTH
-            "south" -> SOUTH
-            "west" -> WEST
-            "east" -> EAST
-            "up" -> UP
-            "down" -> DOWN
-            else -> throw IllegalArgumentException("Unknown block face $input")
+            "floor" -> FLOOR
+            "ceiling" -> CEILING
+            "single_wall" -> SINGLE_WALL
+            "double_wall" -> DOUBLE_WALL
+            else -> throw IllegalArgumentException("Unknown bell attachment type: $input")
         }
     }
 }

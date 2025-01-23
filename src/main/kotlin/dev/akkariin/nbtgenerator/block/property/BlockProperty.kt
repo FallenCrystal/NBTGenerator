@@ -23,7 +23,22 @@ interface BlockProperty<T : Any> {
     fun name(): String
     fun parse(input: String): T
     fun type(): Class<T>
-    fun parseAsData(json: JsonElement) = Data(this, parse(json.asString))
+    fun parseAsData(json: JsonElement) = try {
+        Data(this, parse(json.asString))
+    } catch (ex: Exception) {
+        throw IllegalArgumentException("Error parsing data for property ${name()}: $json", ex)
+    }
+
+    interface IntProperty : BlockProperty<Int> {
+        val min: Int
+        val max: Int
+        override fun parse(input: String): Int {
+            val value = input.toInt()
+            require(value in min..max) { "$input must be in $min to $max" }
+            return value
+        }
+        override fun type() = Int::class.java
+    }
 
     companion object {
         inline fun <reified T : Enum<T>> create(name: String, crossinline parse: (String) -> T) = object : BlockProperty<T> {
@@ -38,14 +53,10 @@ interface BlockProperty<T : Any> {
             override fun type() = Boolean::class.java
         }
 
-        fun createInt(name: String, min: Int, max: Int) = object : BlockProperty<Int> {
+        fun createInt(name: String, min: Int, max: Int) = object : IntProperty {
+            override val min = min
+            override val max = max
             override fun name() = name
-            override fun parse(input: String): Int {
-                val value = input.toInt()
-                require(value in min..max) { "$input must be in $min to $max" }
-                return value
-            }
-            override fun type() = Int::class.java
         }
     }
 

@@ -22,6 +22,7 @@ import com.google.gson.JsonObject
 import dev.akkariin.nbtgenerator.block.definition.BlockDefinition
 import dev.akkariin.nbtgenerator.block.definition.BlockDefinitions
 import dev.akkariin.nbtgenerator.block.property.BlockProperties
+import org.fusesource.jansi.Ansi
 import java.util.*
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
@@ -38,10 +39,13 @@ class BlockData(
     val blockStates = parseBlockState()
     val defaultBlockState = blockStates.find(BlockState::default) ?: throw IllegalArgumentException("Cannot found default block state")
 
-    private val definitions = json
+    val definitions = json
         .getAsJsonObject("definition")
         .let(JsonObject::asMap)
-        .mapNotNull { (key, value) -> BlockDefinitions.map[key]?.let { it to it.parse(value) } }
+        .mapNotNull { (key, value) -> BlockDefinitions.map[key]?.let { it to it.parse(value) } ?: run {
+            println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("Unknown definition $key with value $value").fg(Ansi.Color.DEFAULT))
+            null
+        } }
         .toMap()
 
     @Suppress("UNCHECKED_CAST")
