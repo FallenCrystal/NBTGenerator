@@ -49,6 +49,10 @@ object BlockProperties {
     val trialSpawnerState = BlockProperty.create("trial_spawner_state", TrialSpawnerState::parse) // Trial Spawner
     val vaultState = BlockProperty.create("vault_state", VaultState::parse) // Vault
 
+    // Creaking heart
+    val creaking = BlockProperty.create("creaking", Creaking.Enum::parse) // Legacy
+    val active = BlockProperty.createBoolean("active") // Modern
+
     val powered = BlockProperty.createBoolean("powered")
     val open = BlockProperty.createBoolean("open")
     val waterlogged = BlockProperty.createBoolean("waterlogged")
@@ -70,7 +74,6 @@ object BlockProperties {
     val berries = BlockProperty.createBoolean("berries")
     val conditional = BlockProperty.createBoolean("conditional") // Command block
     val crafting = BlockProperty.createBoolean("crafting") // Crafter
-    val active = BlockProperty.createBoolean("active") // Creaking heart
     val inverted = BlockProperty.createBoolean("inverted") // Daylight Detector
     val cracked = BlockProperty.createBoolean("cracked") // Decorated Pot
     val triggered = BlockProperty.createBoolean("triggered")
@@ -172,9 +175,9 @@ object BlockProperties {
     private val map = arrayOf(face, facing, hinge, thickness, verticalDirection, leaves,
         attachment, tilt, part, sculkSensorPhase, orientation, instrument, trialSpawnerState, vaultState, powered, waterlogged, inWall,
         attached, persistent, natural, snowy, occupied, lit, hasBottle0, hasBottle1, hasBottle2, drag, up, signalFire, berries, conditional,
-        crafting, active, inverted, cracked, triggered, eye, enabled, hasRecord, hanging, hasBook, tip, bottom, extended, short, bloom,
+        crafting, inverted, cracked, triggered, eye, enabled, hasRecord, hanging, hasBook, tip, bottom, extended, short, bloom,
         canSummon, unstable, ominous, disarmed, locked, shrieking, down, open, rotation, stage, honeyLevel, candles, bites,
-        power, moisture, flowerAmount, delay, charges, pickles, hatch, layers, dusted, eggs, note).associateBy { it.name() }
+        power, moisture, flowerAmount, delay, charges, pickles, hatch, layers, dusted, eggs, note, active, creaking).associateBy { it.name() }
 
     fun getProperties(raw: JsonObject): List<BlockProperty<*>> {
         val properties = mutableListOf<BlockProperty<*>>()

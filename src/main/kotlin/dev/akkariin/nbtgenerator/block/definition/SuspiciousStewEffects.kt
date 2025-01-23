@@ -23,7 +23,10 @@ data class SuspiciousStewEffects(
     val duration: Int,
     val id: String
 ) {
-    constructor(json: JsonObject) : this(json.get("duration").asInt, json.get("id").asString)
+    constructor(json: JsonObject) : this(
+        if (json.has("duration")) json.get("duration").asInt else 140, // 1.21.4 -> 1.21.2
+        json.get("id").asString
+    )
 
     class List(collection: Collection<SuspiciousStewEffects>) : ArrayList<SuspiciousStewEffects>(collection)
 }

@@ -120,7 +120,7 @@ object BlockDefinitions {
         open,
         sticky,
         baseState,
-        suspiciousStewEffects,
+        suspiciousStewEffects, // Weird Idea
         properties,
         experience,
         particle
