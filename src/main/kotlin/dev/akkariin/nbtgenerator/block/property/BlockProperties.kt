@@ -15,11 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.akkariin.nbtgenerator.block
+package dev.akkariin.nbtgenerator.block.property
 
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import dev.akkariin.nbtgenerator.block.property.*
 
 @Suppress("MemberVisibilityCanBePrivate")
 object BlockProperties {
@@ -38,6 +37,7 @@ object BlockProperties {
     val variantsRail = BlockProperty.create("shape", VariantsRailShape::parse)
     val thickness = BlockProperty.create("thickness", DripStoneThickness::parse)
     val verticalDirection = BlockProperty.create("vertical_direction", DripStoneVerticalDirection::parse)
+    val leaves = BlockProperty.create("leaves", BambooLeaves::parse)
 
     val powered = BlockProperty.createBoolean("powered")
     val open = BlockProperty.createBoolean("open")
@@ -53,9 +53,44 @@ object BlockProperties {
     val south = BlockProperty.createBoolean("south")
     val west = BlockProperty.createBoolean("west")
 
+    val wallEast = BlockProperty.create("east", WallState::parse)
+    val wallNorth = BlockProperty.create("north", WallState::parse)
+    val wallSouth = BlockProperty.create("south", WallState::parse)
+    val wallWest = BlockProperty.create("west", WallState::parse)
+    val wallUp = BlockProperty.createBoolean("up")
+
     val rotation = BlockProperty.createInt("rotation", 0, 15)
     val distance = BlockProperty.createInt("distance", 1, 7)
     val stage = BlockProperty.createInt("stage", 0, 1)
+
+    // Chiseled Bookshelf
+    private val slotOccupied = arrayOf(0, 1, 2, 3, 4, 5).map {
+        BlockProperty.createBoolean("slot_${it}_occupied")
+    }
+
+    fun getChiseledBookshelfSlot(slot: Int): BlockProperty<Boolean> {
+        require(slot in 0..5) { "Slot must be between 0 and 5" }
+        return slotOccupied[slot]
+    }
+
+    private val ageMap = mutableMapOf<Int, BlockProperty<Int>>()
+
+    fun getAgeProperty(maxAge: Int) = ageMap.computeIfAbsent(maxAge) { BlockProperty.createInt("age", 0, it) }
+
+    fun getDirectionState(key: String, value: List<String>): BlockProperty<*> {
+        val b = when {
+            value.containsAll(WallState.names) -> false
+            value.containsAll(listOf("true", "false")) -> true
+            else -> throw IllegalArgumentException("Unknown direction state: $value")
+        }
+        return when (key) {
+            "east" -> if (b) east else wallEast
+            "north" -> if (b) north else wallNorth
+            "south" -> if (b) south else wallSouth
+            "west" -> if (b) west else wallWest
+            else -> throw IllegalArgumentException("Unknown key for direction: $key")
+        }
+    }
 
     fun getProperties(raw: JsonObject): List<BlockProperty<*>> {
         val properties = mutableListOf<BlockProperty<*>>()
@@ -66,6 +101,7 @@ object BlockProperties {
                 "hinge" -> hinge
                 "thickness" -> thickness
                 "vertical_direction" -> verticalDirection
+                "leaves" -> leaves
                 "powered" -> powered
                 "waterlogged" -> waterlogged
                 "in_wall" -> inWall
@@ -73,10 +109,8 @@ object BlockProperties {
                 "persistent" -> persistent
                 "natural" -> natural
                 "snowy" -> snowy
-                "east" -> east
-                "north" -> north
-                "south" -> south
-                "west" -> west
+                "east", "north", "south", "west" -> getDirectionState(key, array)
+                "up" -> wallUp
                 "open" -> open
                 "rotation" -> rotation
                 "distance" -> distance
@@ -103,6 +137,13 @@ object BlockProperties {
                     array.containsAll(PortalAxis.names) -> portalAxis
                     else -> throw IllegalArgumentException("Unknown axis with value: $array")
                 }
+                "age" -> getAgeProperty(array.last().toInt())
+                "slot_0_occupied" -> getChiseledBookshelfSlot(0)
+                "slot_1_occupied" -> getChiseledBookshelfSlot(1)
+                "slot_2_occupied" -> getChiseledBookshelfSlot(2)
+                "slot_3_occupied" -> getChiseledBookshelfSlot(3)
+                "slot_4_occupied" -> getChiseledBookshelfSlot(4)
+                "slot_5_occupied" -> getChiseledBookshelfSlot(5)
                 else -> throw IllegalArgumentException("Unknown property $key")
             })
         }

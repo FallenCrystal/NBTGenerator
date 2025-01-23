@@ -15,21 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.akkariin.nbtgenerator.block
+package dev.akkariin.nbtgenerator.block.property
 
-interface BlockProperty<T> {
+import com.google.gson.JsonElement
+
+interface BlockProperty<T : Any> {
     fun name(): String
     fun parse(input: String): T
+    fun type(): Class<T>
+    fun parseAsData(json: JsonElement) = Data(this, parse(json.asString))
 
     companion object {
-        fun <T : Enum<T>> create(name: String, parse: (String) -> T) = object : BlockProperty<T> {
+        inline fun <reified T : Enum<T>> create(name: String, crossinline parse: (String) -> T) = object : BlockProperty<T> {
             override fun name() = name
             override fun parse(input: String) = parse(input)
+            override fun type() = T::class.java
         }
 
         fun createBoolean(name: String) = object : BlockProperty<Boolean> {
             override fun name() = name
             override fun parse(input: String) = input.toBooleanStrict()
+            override fun type() = Boolean::class.java
         }
 
         fun createInt(name: String, min: Int, max: Int) = object : BlockProperty<Int> {
@@ -39,6 +45,9 @@ interface BlockProperty<T> {
                 require(value in min..max) { "$input must be in $min to $max" }
                 return value
             }
+            override fun type() = Int::class.java
         }
     }
+
+    data class Data<T : Any>(val property: BlockProperty<T>, val value: T)
 }
