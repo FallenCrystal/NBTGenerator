@@ -46,8 +46,13 @@ object BlockDefinitions {
     val fallingDustColor = BlockDefinition.createString("falling_dust_color")
     val fluid = BlockDefinition.createString("fluid")
     val particleOptions = BlockDefinition.createString("particle_options")
+
     val brushCompletedSound = BlockDefinition.createString("brush_completed_sound")
+    @Suppress("SpellCheckingInspection") // Yes. This is a typo from Mojang. :P
+    // For 1.21 later. Please use brushCompletedSound instead.
+    val brushComletedSound = BlockDefinition.createString("brush_comleted_sound")
     val brushSound = BlockDefinition.createString("brush_sound")
+
     val turnsInto = BlockDefinition.createString("turns_into")
     val hook = BlockDefinition.createString("hook")
 
@@ -106,6 +111,7 @@ object BlockDefinitions {
         fluid,
         particleOptions,
         brushCompletedSound,
+        brushComletedSound,
         brushSound,
         turnsInto,
         hook,
