@@ -63,9 +63,13 @@ class ParseBlockTask(folder: File, val terminal: Boolean) : Task(folder) {
 
     private fun printBlockInfo(block: BlockData) {
         println("Block: ${block.name}")
-        println("  Definitions: (${block.definitions.size})")
-        for (def in block.definitions.keys) {
-            println("  - ${def.name} (${def.type().simpleName}): ${block.getDefinition(def).map(Any::toString).orElse("null")}")
+        if (block.definitions.isEmpty()) {
+            println("  Definitions: N/A")
+        } else {
+            println("  Definitions: (${block.definitions.size})")
+            for (def in block.definitions.keys) {
+                println("  - ${def.name} (${def.type().simpleName}): ${block.getDefinition(def).map(Any::toString).orElse("null")}")
+            }
         }
         if (block.properties.isEmpty()) {
             println("  BlockState: ${block.defaultBlockState}")

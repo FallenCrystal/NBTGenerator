@@ -39,14 +39,17 @@ class BlockData(
     val blockStates = parseBlockState()
     val defaultBlockState = blockStates.find(BlockState::default) ?: throw IllegalArgumentException("Cannot found default block state")
 
-    val definitions = json
-        .getAsJsonObject("definition")
+    val definitions = if (json.has("definitions")) {
+        json.getAsJsonObject("definition")
         .let(JsonObject::asMap)
         .mapNotNull { (key, value) -> BlockDefinitions.map[key]?.let { it to it.parse(value) } ?: run {
             println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("Unknown definition $key with value $value").fg(Ansi.Color.DEFAULT))
             null
         } }
         .toMap()
+    } else {
+        emptyMap()
+    }
 
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> getDefinition(key: BlockDefinition<T>): Optional<T> {
