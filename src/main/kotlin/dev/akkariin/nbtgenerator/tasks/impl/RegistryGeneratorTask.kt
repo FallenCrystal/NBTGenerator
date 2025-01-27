@@ -27,11 +27,21 @@ import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask.ElementCleaner
 import dev.akkariin.nbtgenerator.util.FileUtil.hasDirectories
 import dev.akkariin.nbtgenerator.util.FileUtil.isMatched
 import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
-import dev.akkariin.nbtgenerator.util.JsonSerializer
+import dev.akkariin.nbtgenerator.util.NbtUtil.filterKeys
+import dev.akkariin.nbtgenerator.util.NbtUtil.getExcepted
+import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedCompound
+import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedString
+import dev.akkariin.nbtgenerator.util.NbtUtil.has
+import dev.akkariin.nbtgenerator.util.NbtUtil.serializeTag
+import dev.akkariin.nbtgenerator.util.NbtUtil.toCompoundList
+import dev.akkariin.nbtgenerator.util.NbtUtil.toListTag
+import dev.akkariin.nbtgenerator.util.NbtUtil.toTag
 import net.kyori.adventure.nbt.*
 import java.io.File
 import java.io.FileReader
 import java.util.concurrent.TimeUnit
+
+private typealias Types = BinaryTagTypes
 
 class RegistryGeneratorTask(folder: File, private val output: File) : Task(folder) {
    // Stages
@@ -106,17 +116,16 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
                 require(names.contains("minecraft:ashen")) { "Registries doesn't have minecraft:ashen in minecraft:wolf_variant" }
                 val biomes = compound
                     .getCompound("minecraft:worldgen/biome")
-                    .getList("value", BinaryTagTypes.COMPOUND)
-                    .map { it as CompoundBinaryTag }
-                    .map { it.getString("name") }
+                    .getExcepted("value", Types.LIST)
+                    .toCompoundList()
+                    .map { it.getExceptedString("name") }
                 val variants = compound
                     .getCompound("minecraft:wolf_variant")
-                    .getList("value", BinaryTagTypes.COMPOUND)
-                    .asSequence()
-                    .map { it as CompoundBinaryTag }
-                    .associate { it.getString("name") to it["element"] as CompoundBinaryTag }
+                    .getExcepted("value", Types.LIST)
+                    .toCompoundList()
+                    .associate { it.getExceptedString("name") to it.getExceptedCompound("element") }
                 for ((name, element) in variants) {
-                    val biome = (element["biomes"] as StringBinaryTag).value()
+                    val biome = element.getExceptedString("biomes")
                     if (biome.startsWith("#")) continue // Skipping tags
                     require(biomes.contains(biome)) { "Wolf variant ($name) that requires spawn at biome $biome, But not found in minecraft:worldgen/biome" }
                 }
@@ -140,11 +149,11 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
             } else if (file.name.endsWith(".json")) {
                 try {
                     val json = Gson().fromJson(FileReader(file), JsonObject::class.java)
-                    val compound = CompoundBinaryTag.builder()
-                    compound.putInt("id", index++)
-                    compound.putString("name", "minecraft:${file.name.removeSuffix(".json")}")
-                    compound.put("element", JsonSerializer.serialize(json))
-                    tags.add(compound.build())
+                    tags.add(mapOf(
+                        "id" to index++.toTag(),
+                        "name" to "minecraft:${file.name.removeSuffix(".json")}".toTag(),
+                        "element" to json.serializeTag()
+                    ).toTag())
                 } catch (e: Exception) {
                     println("Failed to parse file ${file.absolutePath}")
                     e.printStackTrace()
@@ -177,18 +186,17 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
 
     // Directly use CompoundBinaryTag#get to prevent create the empty tag for excepted type.
     private fun testGetTypeAsKeyList(tag: CompoundBinaryTag, type: String): List<String> {
-        val compound = (tag[type] ?: throw IllegalArgumentException("Cannot found $type in registry."))
-                as? CompoundBinaryTag ?: throw IllegalArgumentException("Except CompoundBinaryTag but found ${tag["type"]}.")
-        val lists = (compound["value"] ?: throw IllegalArgumentException("Excepted ListBinaryTag but found null in registry."))
-                as? ListBinaryTag ?: throw IllegalArgumentException("Excepted ListBinaryTag but found ${compound["value"]} in registry.")
+        val compound = tag.getExcepted(type, BinaryTagTypes.COMPOUND)
+        val lists = compound.getExcepted("value", BinaryTagTypes.LIST)
         return lists
             .asSequence()
-            .map { it as? CompoundBinaryTag ?: throw IllegalArgumentException("Excepted CompoundBinaryTag but found ${it::class.simpleName} in registry.") }
-            .onEach { require(it["name"] is StringBinaryTag) { "Excepted StringBinaryTag (name) but found ${it["name"]}" } }
-            .onEach { require(it["id"] is IntBinaryTag) { "Excepted IntBinaryTag (id) but found ${it["id"]}" } }
-            .onEach { require(it["element"] is CompoundBinaryTag) { "Excepted CompoundBinaryTag (element) but found ${it["element"]}" } }
-            .map { it["name"] as StringBinaryTag }
-            .map(StringBinaryTag::value)
+            .map { it as? CompoundBinaryTag ?: throw IllegalArgumentException("Excepted CompoundBinaryTag but found ${it::class.simpleName} in registry value element.") }
+            .onEach {
+                require(it.has("name", Types.STRING)) { "Excepted StringBinaryTag (name) but found ${it["name"]}" }
+                require(it.has("id", Types.INT)) { "Excepted IntBinaryTag (id) but found ${it["id"]}" }
+                require(it.has("element", Types.COMPOUND)) { "Excepted CompoundBinaryTag (element) but found ${it["element"]}" }
+            }
+            .map { it.getExceptedString("name") }
             .toList()
     }
 
@@ -232,45 +240,29 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
 
     fun interface ElementCleaner {
         fun clean(type: String, original: Collection<CompoundBinaryTag>): Collection<CompoundBinaryTag>?
-        fun accept(original: CompoundBinaryTag): CompoundBinaryTag {
-            val builder = CompoundBinaryTag.builder()
-            val map = original
-                .associate { (type, tag) -> type to (tag as CompoundBinaryTag).get("value") as ListBinaryTag }
-                .mapValues { (key, value) -> clean(key, value.map { it as CompoundBinaryTag }) }
-            for ((key, value) in map) {
-                if (value == null) continue
-                builder.put(key, CompoundBinaryTag
-                    .builder()
-                    .put("type", StringBinaryTag.stringBinaryTag(key))
-                    .put("value", ListBinaryTag.from(value))
-                    .build()
-                )
-            }
-            return builder.build()
-        }
+        fun accept(original: CompoundBinaryTag) = original
+            .associate { (type, tag) -> type to (tag as CompoundBinaryTag).getExcepted("value", Types.LIST) }
+            .mapValues { (key, value) -> clean(key, value.map { it as CompoundBinaryTag }) }
+            .mapNotNull { (key, value) -> if (value == null) null else key to value }
+            .associate { (key, value) -> key to mapOf("type" to key.toTag(), "value" to value.toListTag()).toTag() }
+            .toTag()
     }
 
     enum class PresentsCleaner(val cleaner: ElementCleaner? = null) {
         FULL(ElementCleaner { type, original ->
             when (type) {
                 "minecraft:chat_type", "minecraft:damage_type" -> original
-                "minecraft:dimension_type" -> listOf(modifyElement(original.first { (it["name"] as StringBinaryTag).value() == "minecraft:overworld" }, "monster_spawn_light_level") {
+                "minecraft:dimension_type" -> listOf(modifyElement(original.first { it.getExceptedString("name") == "minecraft:overworld" }, "monster_spawn_light_level") {
                     IntBinaryTag.intBinaryTag(0)
                 })
                 "minecraft:painting_variant" -> listOf(original.first())
-                "minecraft:wolf_variant" -> listOf(modifyElement(original.first { (it["name"] as StringBinaryTag).value() == "minecraft:ashen" }, "biomes") {
-                    StringBinaryTag.stringBinaryTag("minecraft:plains")
-                })
+                "minecraft:wolf_variant" -> listOf(modifyElement(original.first { it.getExceptedString("name") == "minecraft:ashen" }, "biomes") { "minecraft:plains".toTag() })
                 "minecraft:worldgen/biome" -> {
                     val lists = mutableListOf<CompoundBinaryTag>()
-                    val ov = original.associate { (it["name"] as StringBinaryTag).value() to it["element"] as CompoundBinaryTag }
-                    fun clean(o: CompoundBinaryTag) = CompoundBinaryTag.builder().apply {
-                        for ((key, value) in o) if (USELESS_BIOME_ELEMENTS.contains(key)) continue else put(key, value)
-                    }.build()
-                    val plains = clean(ov["minecraft:plains"]!!)
-                    val swamp = clean(ov["minecraft:swamp"]!!)
-                    lists.add(CompoundBinaryTag.builder().putString("name", "minecraft:plains").putInt("id", 0).put("element", plains).build())
-                    lists.add(CompoundBinaryTag.builder().putString("name", "minecraft:swamp").putInt("id", 1).put("element", swamp).build())
+                    val ov = original.associate { (it.getExceptedString("name") to it.getExceptedCompound("compound")) }
+                    fun clean(o: CompoundBinaryTag) = o.filterKeys(USELESS_BIOME_ELEMENTS::contains)
+                    lists.add(mapOf("name" to "minecraft:plains".toTag(), "id" to 0.toTag(), "element" to clean(ov["minecraft:plains"]!!)).toTag())
+                    lists.add(mapOf("name" to "minecraft:swamp".toTag(), "id" to 1.toTag(), "element" to clean(ov["minecraft:swamp"]!!)).toTag())
                     lists
                 }
                 else -> emptyList()
@@ -279,15 +271,8 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
         SIMPLE(ElementCleaner { type, original ->
             when (type) {
                 "minecraft:worldgen/biome" -> original.map { o -> modifyElement(o, null, USELESS_BIOME_ELEMENTS::contains) }
-                "minecraft:enchantment" -> original.map { o -> modifyElement(o, "effects") {
-                    CompoundBinaryTag.builder().apply {
-                        for ((key, value) in it as CompoundBinaryTag) {
-                            if (key == "minecraft:tick") continue
-                            put(key, value)
-                        }
-                    }.build()
-                }}
-                "minecraft:dimension_type" -> original.map { o -> modifyElement(o, "monster_spawn_light_level") { IntBinaryTag.intBinaryTag(0) } }
+                "minecraft:enchantment" -> original.map { o -> modifyElement(o, "effects") { (it as CompoundBinaryTag).filterKeys { key -> key == "minecraft:tick" } }}
+                "minecraft:dimension_type" -> original.map { o -> modifyElement(o, "monster_spawn_light_level") { 0.toTag() } }
                 else -> original
             }
         }),
@@ -298,32 +283,24 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
         private val USELESS_BIOME_ELEMENTS = setOf("features", "spawners", "carvers", "spawn_costs")
 
         fun modifyElement(original: CompoundBinaryTag, needModify: ((CompoundBinaryTag) -> Boolean)?, keyFilter: (String) -> Boolean): CompoundBinaryTag {
-            val o = original["element"]!! as CompoundBinaryTag
+            val o = original.getExceptedCompound("element")
             if (needModify != null && !needModify(o)) return o
-            return CompoundBinaryTag
-                .builder()
-                .put("name", original["name"]!!)
-                .put("id", original["id"]!!)
-                .put("element", CompoundBinaryTag.builder().apply {
-                    for ((key, value) in o) {
-                        if (keyFilter(key)) continue
-                        put(key, value)
-                    }
-                }.build())
-                .build()
+            return mapOf(
+                "name" to original.getExcepted("name", Types.STRING),
+                "id" to original.getExcepted("id", Types.INT),
+                "element" to o.filterKeys(keyFilter)
+            ).toTag()
         }
 
         fun modifyElement(original: CompoundBinaryTag, keyToModify: String, modifier: (BinaryTag) -> BinaryTag) =
-            CompoundBinaryTag
-                .builder()
-                .put("name", original["name"]!!)
-                .put("id", original["id"]!!)
-                .put("element", CompoundBinaryTag.builder().apply {
-                    for ((key, value) in original["element"]!! as CompoundBinaryTag) {
-                        put(key, if (key == keyToModify) modifier(value) else value)
-                    }
-                }.build())
-                .build()
+            mapOf(
+                "name" to original.getExcepted("name", Types.STRING),
+                "id" to original.getExcepted("id", Types.INT),
+                "element" to original
+                    .getExceptedCompound("element")
+                    .associate { (key, value) -> key to if (key == keyToModify) modifier(value) else value }
+                    .toTag(),
+            ).toTag()
     }
 
 }
