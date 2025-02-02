@@ -18,19 +18,21 @@
 package dev.akkariin.nbtgenerator.tasks.impl
 
 import com.google.gson.Gson
-import com.google.gson.JsonObject
+import com.google.gson.JsonElement
 import dev.akkariin.nbtgenerator.args.ArgsParser
 import dev.akkariin.nbtgenerator.block.BlockData
 import dev.akkariin.nbtgenerator.block.BlockState
 import dev.akkariin.nbtgenerator.data.MultiException
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
+import dev.akkariin.nbtgenerator.util.FileUtil.existOrThrow
 import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
+import dev.akkariin.nbtgenerator.util.JsonUtil.exceptedAsJsonObject
 import java.io.File
 import java.io.FileReader
 
 @Suppress("MemberVisibilityCanBePrivate")
-class ParseBlockTask(folder: File, val launchTerminal: Boolean) : Task(folder) {
+class ParseBlockTask(folder: File) : Task(folder) {
 
     // Stages
     private val findFile = Stage("Find file", "Finding file for blocks states data") {
@@ -40,7 +42,10 @@ class ParseBlockTask(folder: File, val launchTerminal: Boolean) : Task(folder) {
         )
     }
     private val readFile = Stage("Read file", "Reading the blocks states file") {
-        listOf("Check whether the target file has JSON syntax errors.")
+        listOf(
+            "Check whether the target file has JSON syntax errors.",
+            "Make sure application has permission to read the file."
+        )
     }
     private val parseBlocks = Stage("Parse blocks", "Parse blocks states data")
     private val mappingId = Stage("Mapping ID", "Mapping block states for protocol id")
@@ -51,14 +56,14 @@ class ParseBlockTask(folder: File, val launchTerminal: Boolean) : Task(folder) {
     override fun initialize() = arrayOf(findFile, readFile, parseBlocks, mappingId)
     override fun execute(parser: ArgsParser) {
         setStage(findFile)
-        val file = findFile()
+        val file = File(folder, "reports/blocks.json".toFilePath()).existOrThrow()
         setStage(readFile)
-        val jsonObject = Gson().fromJson(FileReader(file), JsonObject::class.java)
+        val jsonObject = Gson().fromJson(FileReader(file), JsonElement::class.java).exceptedAsJsonObject()
         setStage(parseBlocks)
         val exception = MultiException("Failed to parse blocks data")
-        for ((k, v) in jsonObject.entrySet()) {
+        for ((k, v) in jsonObject.entrySet().map { it.key to it.value.exceptedAsJsonObject() }) {
             try {
-                blocksData[k] = BlockData(k, v.asJsonObject)
+                blocksData[k] = BlockData(k, v)
             } catch (t: Throwable) {
                 exception.addException(t)
             }
@@ -66,12 +71,6 @@ class ParseBlockTask(folder: File, val launchTerminal: Boolean) : Task(folder) {
         if (exception.isNotEmpty()) throw exception
         setStage(mappingId)
         blocksData.values.forEach { block -> block.blockStates.forEach { idMapping[it.id] = it } }
-    }
-
-    private fun findFile(): File {
-        return File(folder, "reports/blocks.json".toFilePath()).apply {
-            require(exists()) { "File does not exist: $absolutePath" }
-        }
     }
 
 }

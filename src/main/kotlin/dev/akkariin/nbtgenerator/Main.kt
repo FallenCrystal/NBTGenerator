@@ -22,6 +22,7 @@ import dev.akkariin.nbtgenerator.args.ArgsParser
 import dev.akkariin.nbtgenerator.data.MultiException
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
+import dev.akkariin.nbtgenerator.tasks.impl.CollectProtocolMappingTask
 import dev.akkariin.nbtgenerator.tasks.impl.DownloadTask
 import dev.akkariin.nbtgenerator.tasks.impl.ParseBlockTask
 import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask
@@ -47,8 +48,9 @@ fun main(args: Array<String>) {
         .takeUnless { it == "null" }
         ?: run {
             println("Select a task to continue.")
-            println("[1|registry] - RegistryGeneratorTask")
-            println("[2|blocks] - ParseBlockTask")
+            println("[1|registry] - RegistryGeneratorTask (1.18+)")
+            println("[2|blocks] - ParseBlockTask (Test) (1.20+)")
+            println("[3|mapping] - CollectProtocolMappingTask (Test) (?)")
             try { Scanner(System.`in`).nextLine() } catch (e: Exception) { null }
         }
     ) {
@@ -68,7 +70,10 @@ fun main(args: Array<String>) {
             )
         }
         "2", "blocks" -> {
-            runTask(ParseBlockTask(File(folder, "generated"), false), parser, skippingTest)
+            runTask(ParseBlockTask(File(folder, "generated")), parser, skippingTest)
+        }
+        "3", "mapping" -> {
+            runTask(CollectProtocolMappingTask(File(folder, "generated")), parser, skippingTest)
         }
         else -> {
             println("Unknown input $task. Exiting.")

@@ -18,6 +18,7 @@
 package dev.akkariin.nbtgenerator.tasks.impl
 
 import com.google.gson.Gson
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import dev.akkariin.nbtgenerator.args.Arg
 import dev.akkariin.nbtgenerator.args.ArgsParser
@@ -148,7 +149,8 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
                 searchFolder("${type.removePrefix("minecraft:")}/", file, builder, pathFilter)
             } else if (file.name.endsWith(".json")) {
                 try {
-                    val json = Gson().fromJson(FileReader(file), JsonObject::class.java)
+                    val json = Gson().fromJson(FileReader(file), JsonElement::class.java)
+                    if (json !is JsonObject) continue
                     tags.add(mapOf(
                         "id" to index++.toTag(),
                         "name" to "minecraft:${file.name.removeSuffix(".json")}".toTag(),

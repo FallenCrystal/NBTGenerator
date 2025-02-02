@@ -34,4 +34,8 @@ object FileUtil {
     fun File.hasDirectories(vararg folders: String) = folders.all { this.hasDirectory(it) }
 
     fun File.isMatched(vararg names: String) = names.all { name == it }
+
+    fun File.existOrThrow() = this.apply {
+        require(exists()) { "File does not exist: $absolutePath" }
+    }
 }
