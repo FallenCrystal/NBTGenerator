@@ -76,8 +76,10 @@ object BlockDefinitions {
     }
 
     val suspiciousStewEffects = BlockDefinition.create("suspicious_stew_effects") {
-        SuspiciousStewEffects.List(it.asJsonArray.map { SuspiciousStewEffects(it as JsonObject) })
+        it.asJsonArray.map(JsonElement::getAsJsonObject).map { obj -> SuspiciousStewEffects(obj) }
     }
+
+    private fun getSuspiciousStew(): BlockDefinition<List<SuspiciousStewEffects>> = suspiciousStewEffects
 
     val properties = BlockDefinition.create("properties") { PropertiesDefinition() }
 
@@ -85,7 +87,7 @@ object BlockDefinitions {
 
     val particle = BlockDefinition.create("particle") { ParticleDefinition(it) }
 
-    val map = arrayOf(
+    val map = arrayOf<BlockDefinition<*>>(
         type,
         blockSetType,
         woodType,
@@ -126,7 +128,7 @@ object BlockDefinitions {
         open,
         sticky,
         baseState,
-        suspiciousStewEffects, // Weird Idea
+        getSuspiciousStew(), // Weird Idea
         properties,
         experience,
         particle

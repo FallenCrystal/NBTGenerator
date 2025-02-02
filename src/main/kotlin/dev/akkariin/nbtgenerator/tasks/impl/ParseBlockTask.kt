@@ -33,8 +33,15 @@ import java.io.FileReader
 class ParseBlockTask(folder: File, val launchTerminal: Boolean) : Task(folder) {
 
     // Stages
-    private val findFile = Stage("Find file", "Finding file for blocks states data")
-    private val readFile = Stage("Read file", "Reading the blocks states file")
+    private val findFile = Stage("Find file", "Finding file for blocks states data") {
+        listOf(
+            "Check that the data generator has been run. And point the path to the correct folder.",
+            "Check the Minecraft version of the target. The generator only supports the 1.20+ version of Minecraft."
+        )
+    }
+    private val readFile = Stage("Read file", "Reading the blocks states file") {
+        listOf("Check whether the target file has JSON syntax errors.")
+    }
     private val parseBlocks = Stage("Parse blocks", "Parse blocks states data")
     private val mappingId = Stage("Mapping ID", "Mapping block states for protocol id")
 
