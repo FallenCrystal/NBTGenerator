@@ -17,6 +17,7 @@
 
 package dev.akkariin.nbtgenerator.util
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
@@ -43,28 +44,31 @@ object JsonUtil {
     fun JsonElement.exceptedAsJsonObject(message: String = "Excepted JsonObject but found ${this::class.simpleName}") =
         this as? JsonObject ?: throw IllegalArgumentException(message)
 
-    fun JsonObject.getAsJsonObjectOrThrow(key: String, message: String = string0("JsonObject")) =
+    fun JsonObject.getObject(key: String, message: String = string0("JsonObject")) =
         this[key] as? JsonObject ?: throw IllegalArgumentException(formatMessage(message, key))
 
-    fun JsonObject.getAsStringOrThrow(key: String, message: String = string0("JsonPrimitive (String)")): String =
+    fun JsonObject.array(key: String, message: String = string0("JsonArray")) =
+        this[key] as? JsonArray ?: throw IllegalArgumentException(formatMessage(message, key))
+
+    fun JsonObject.string(key: String, message: String = string0("JsonPrimitive (String)")): String =
         getJsonPrimitive(key, JsonPrimitive::isString, JsonPrimitive::getAsString, message)
 
-    fun JsonObject.getAsStringOrNull(key: String, message: String = string0("JsonPrimitive (String)")) =
-        this.takeIf { has(key) }?.getAsStringOrThrow(key, string0(message))
+    fun JsonObject.stringOrNull(key: String, message: String = string0("JsonPrimitive (String)")) =
+        this.takeIf { has(key) }?.string(key, string0(message))
 
-    fun JsonObject.getAsBooleanOrThrow(key: String, message: String = string0("JsonPrimitive (Boolean)")) =
+    fun JsonObject.boolean(key: String, message: String = string0("JsonPrimitive (Boolean)")) =
         getJsonPrimitive(key, JsonPrimitive::isBoolean, JsonPrimitive::getAsBoolean, message)
 
-    fun JsonObject.getAsNumberOrThrow(key: String, message: String = string0("JsonPrimitive (Number)")) =
-        getNumber<Number>(key, message) { it }
+    fun JsonObject.number(key: String, message: String = string0("JsonPrimitive (Number)")) =
+        this.getNumber<Number>(key, message) { it }
 
-    fun JsonObject.getAsIntOrThrow(key: String, message: String = string0("JsonPrimitive (Int)")) =
+    fun JsonObject.int(key: String, message: String = string0("JsonPrimitive (Int)")) =
         getNumber<Int>(key, message, LazilyParsedNumber::toInt)
 
-    fun JsonObject.getAsDoubleOrThrow(key: String, message: String = string0("JsonPrimitive (Double)")) =
+    fun JsonObject.double(key: String, message: String = string0("JsonPrimitive (Double)")) =
         getNumber<Double>(key, message, LazilyParsedNumber::toDouble)
 
-    fun JsonObject.getAsLongOrThrow(key: String ,message: String = string0("JsonPrimitive (Long)")) =
+    fun JsonObject.long(key: String, message: String = string0("JsonPrimitive (Long)")) =
         getNumber<Long>(key, message, LazilyParsedNumber::toLong)
 
     private inline fun <reified T : Number> JsonObject.getNumber(key: String, message: String, func: (LazilyParsedNumber) -> T): T {

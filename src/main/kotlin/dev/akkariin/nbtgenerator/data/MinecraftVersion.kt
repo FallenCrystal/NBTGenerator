@@ -20,16 +20,20 @@ package dev.akkariin.nbtgenerator.data
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import dev.akkariin.nbtgenerator.util.HttpsUtil
+import dev.akkariin.nbtgenerator.util.JsonUtil.exceptedAsJsonObject
+import dev.akkariin.nbtgenerator.util.JsonUtil.int
+import dev.akkariin.nbtgenerator.util.JsonUtil.getObject
+import dev.akkariin.nbtgenerator.util.JsonUtil.string
 import java.util.concurrent.CompletableFuture
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 data class MinecraftVersion(val id: String, val type: Type, val url: String, val releaseTime: String) {
 
     constructor(json: JsonObject) : this(
-        json.get("id").asString,
-        Type.valueOf(json.get("type").asString.uppercase()),
-        json.get("url").asString,
-        json.get("releaseTime").asString
+        json.string("id"),
+        Type.valueOf(json.string("type").uppercase()),
+        json.string("url"),
+        json.string("releaseTime")
     )
 
     fun fetchData(): CompletableFuture<Data> {
@@ -53,11 +57,13 @@ data class MinecraftVersion(val id: String, val type: Type, val url: String, val
 
         companion object {
             fun from(json: JsonObject): Collector {
-                val map = json.getAsJsonArray("versions").map { MinecraftVersion(it.asJsonObject) }.associateBy { it.id }
-                val latest = json.getAsJsonObject("latest")
+                val map = json.getAsJsonArray("versions")
+                    .map { MinecraftVersion(it.exceptedAsJsonObject()) }
+                    .associateBy(MinecraftVersion::id)
+                val latest = json.getObject("latest")
                 return Collector(
-                    map[latest["release"]!!.asString]!!,
-                    map[latest["snapshot"]!!.asString]!!,
+                    map[latest.string("release")]!!,
+                    map[latest.string("snapshot")]!!,
                     map
                 )
             }
@@ -67,13 +73,13 @@ data class MinecraftVersion(val id: String, val type: Type, val url: String, val
     data class Data(val minecraftVersion: MinecraftVersion, val javaVersion: JavaVersion, val downloads: Downloads) {
         constructor(minecraftVersion: MinecraftVersion, json: JsonObject) : this(
             minecraftVersion,
-            JavaVersion(json.getAsJsonObject("javaVersion")),
-            Downloads(json.getAsJsonObject("downloads")),
+            JavaVersion(json.getObject("javaVersion")),
+            Downloads(json.getObject("downloads")),
         )
     }
 
     data class JavaVersion(val component: String, val majorVersion: Int) {
-        constructor(json: JsonObject) : this(json.get("component").asString, json.get("majorVersion").asInt)
+        constructor(json: JsonObject) : this(json.string("component"), json.int("majorVersion"))
     }
 
     data class Downloads(
@@ -83,14 +89,14 @@ data class MinecraftVersion(val id: String, val type: Type, val url: String, val
         val serverMappings: Source,
     ) {
         constructor(json: JsonObject) : this(
-            Source(json.getAsJsonObject("client")),
-            Source(json.getAsJsonObject("client_mappings")),
-            Source(json.getAsJsonObject("server")),
-            Source(json.getAsJsonObject("server_mappings"))
+            Source(json.getObject("client")),
+            Source(json.getObject("client_mappings")),
+            Source(json.getObject("server")),
+            Source(json.getObject("server_mappings"))
         )
     }
 
     data class Source(val sha1: String, val size: Int, val url: String) {
-        constructor(json: JsonObject) : this(json.get("sha1").asString, json.get("size").asInt, json.get("url").asString)
+        constructor(json: JsonObject) : this(json.string("sha1"), json.int("size"), json.string("url"))
     }
 }

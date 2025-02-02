@@ -28,9 +28,9 @@ import dev.akkariin.nbtgenerator.tasks.Task
 import dev.akkariin.nbtgenerator.util.FileUtil.existOrThrow
 import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
 import dev.akkariin.nbtgenerator.util.JsonUtil.exceptedAsJsonObject
-import dev.akkariin.nbtgenerator.util.JsonUtil.getAsIntOrThrow
-import dev.akkariin.nbtgenerator.util.JsonUtil.getAsJsonObjectOrThrow
-import dev.akkariin.nbtgenerator.util.JsonUtil.getAsStringOrNull
+import dev.akkariin.nbtgenerator.util.JsonUtil.int
+import dev.akkariin.nbtgenerator.util.JsonUtil.getObject
+import dev.akkariin.nbtgenerator.util.JsonUtil.stringOrNull
 import java.io.File
 import java.io.FileReader
 
@@ -64,17 +64,17 @@ class CollectProtocolMappingTask(folder: File) : Task(folder) {
         val wrappedRegistry = mutableMapOf<String, ProtocolRegistry>()
         for ((key, value) in obj.entrySet().map { it.key to it.value.exceptedAsJsonObject() }) {
             try {
-                val entries = value.getAsJsonObjectOrThrow("entries")
+                val entries = value.getObject("entries")
                 val wrappedEntries = mutableMapOf<String, ProtocolData>()
                 for (entry in entries.entrySet()) {
                     val name = entry.key
                     val protocolId = entry.value.exceptedAsJsonObject().let {
                         if (it.size() != 1) throw IllegalArgumentException("Excepted 1 size but found ${it.size()} while reading $name.")
-                        it.getAsIntOrThrow("protocol_id")
+                        it.int("protocol_id")
                     }
                     wrappedEntries[name] = ProtocolData(name, protocolId)
                 }
-                val default = value.getAsStringOrNull("default")?.let(wrappedEntries::get)
+                val default = value.stringOrNull("default")?.let(wrappedEntries::get)
                 wrappedRegistry[key] = ProtocolRegistry(key, default, wrappedEntries.values.toList())
             } catch (t: Throwable) {
                 exception.addException(t)

@@ -18,7 +18,7 @@
 package dev.akkariin.nbtgenerator.tasks.impl
 
 import com.google.gson.Gson
-import com.google.gson.JsonObject
+import com.google.gson.JsonElement
 import dev.akkariin.nbtgenerator.args.Arg
 import dev.akkariin.nbtgenerator.args.ArgsParser
 import dev.akkariin.nbtgenerator.data.MinecraftVersion
@@ -27,6 +27,7 @@ import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
 import dev.akkariin.nbtgenerator.util.FileUtil
 import dev.akkariin.nbtgenerator.util.HttpsUtil
+import dev.akkariin.nbtgenerator.util.JsonUtil.exceptedAsJsonObject
 import org.fusesource.jansi.Ansi
 import java.io.File
 import java.io.FileOutputStream
@@ -71,7 +72,10 @@ class DownloadTask(folder: File) : Task(folder) {
         }
         setStage(fetchVersions)
         val collector = ofTries("fetch versions", maxTries) {
-            Collector.from(Gson().fromJson(HttpsUtil.readString("https://piston-meta.mojang.com/mc/game/version_manifest.json"), JsonObject::class.java))
+            Collector.from(Gson()
+                .fromJson(HttpsUtil.readString("https://piston-meta.mojang.com/mc/game/version_manifest.json"), JsonElement::class.java)
+                .exceptedAsJsonObject()
+            )
         }
         val wrappedVersion = when (version) {
             "release" -> collector.latestRelease
