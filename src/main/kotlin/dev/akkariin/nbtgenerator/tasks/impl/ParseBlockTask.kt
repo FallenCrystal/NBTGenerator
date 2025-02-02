@@ -30,7 +30,7 @@ import java.io.File
 import java.io.FileReader
 
 @Suppress("MemberVisibilityCanBePrivate")
-class ParseBlockTask(folder: File, val terminal: Boolean) : Task(folder) {
+class ParseBlockTask(folder: File, val launchTerminal: Boolean) : Task(folder) {
 
     // Stages
     private val findFile = Stage("Find file", "Finding file for blocks states data")
@@ -59,26 +59,6 @@ class ParseBlockTask(folder: File, val terminal: Boolean) : Task(folder) {
         if (exception.isNotEmpty()) throw exception
         setStage(mappingId)
         blocksData.values.forEach { block -> block.blockStates.forEach { idMapping[it.id] = it } }
-    }
-
-    private fun printBlockInfo(block: BlockData) {
-        println("Block: ${block.name}")
-        if (block.definitions.isEmpty()) {
-            println("  Definitions: N/A")
-        } else {
-            println("  Definitions: (${block.definitions.size})")
-            for (def in block.definitions.keys) {
-                println("  - ${def.name} (${def.type().simpleName}): ${block.getDefinition(def).map(Any::toString).orElse("null")}")
-            }
-        }
-        if (block.properties.isEmpty()) {
-            println("  BlockState: ${block.defaultBlockState}")
-        } else {
-            println("  BlockState: (${block.blockStates.size})")
-            for (state in block.blockStates) {
-                println("  - $state ${if (state.default) "(Default)" else ""}")
-            }
-        }
     }
 
     private fun findFile(): File {
