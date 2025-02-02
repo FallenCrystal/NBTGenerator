@@ -62,7 +62,7 @@ fun main(args: Array<String>) {
                     parser.parse(Arg.of(
                         "output",
                         "Output file name",
-                        if (version == "null") "output.nbt" else version.replace(".", "_") + ".nbt"
+                        if (version == "null") "output.nbt" else folder.name.replace(".", "_") + ".nbt"
                     ))
                 )),
                 parser,
