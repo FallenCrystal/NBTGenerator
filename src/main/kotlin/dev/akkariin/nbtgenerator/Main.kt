@@ -55,7 +55,14 @@ fun main(args: Array<String>) {
         "1", "registry" -> {
             runTask(RegistryGeneratorTask(
                 File(folder, "generated"),
-                File(folder, parser.parse(Arg.of("output", "Output file name", if (version == "null") "output.nbt" else version.replace(".", "_") + ".nbt")))),
+                File(
+                    File(System.getProperty("user.dir")),
+                    parser.parse(Arg.of(
+                        "output",
+                        "Output file name",
+                        if (version == "null") "output.nbt" else version.replace(".", "_") + ".nbt"
+                    ))
+                )),
                 parser,
                 skippingTest
             )
