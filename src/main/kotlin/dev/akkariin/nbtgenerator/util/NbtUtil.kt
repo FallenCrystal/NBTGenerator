@@ -50,19 +50,21 @@ object NbtUtil {
     ) = toBinaryTag(toT(Array(array.size()) { toN(array[it]) }))
 
     val typeMap = mapOf(
-        TagTypes.BYTE to ByteTag::class.java,
-        TagTypes.SHORT to ShortTag::class.java,
-        TagTypes.INT to IntTag::class.java,
-        TagTypes.LONG to LongTag::class.java,
-        TagTypes.FLOAT to FloatTag::class.java,
-        TagTypes.DOUBLE to DoubleTag::class.java,
-        TagTypes.STRING to StringTag::class.java,
-        TagTypes.BYTE_ARRAY to ByteArrayTag::class.java,
-        TagTypes.INT_ARRAY to IntArrayTag::class.java,
-        TagTypes.LONG_ARRAY to LongArrayTag::class.java,
-        TagTypes.COMPOUND to CompoundTag::class.java,
-        TagTypes.LIST to ListTag::class.java,
+        toTypePair(TagTypes.BYTE),
+        toTypePair(TagTypes.SHORT),
+        toTypePair(TagTypes.INT),
+        toTypePair(TagTypes.LONG),
+        toTypePair(TagTypes.FLOAT),
+        toTypePair(TagTypes.DOUBLE),
+        toTypePair(TagTypes.STRING),
+        toTypePair(TagTypes.BYTE_ARRAY),
+        toTypePair(TagTypes.INT_ARRAY),
+        toTypePair(TagTypes.LONG_ARRAY),
+        toTypePair(TagTypes.COMPOUND),
+        toTypePair(TagTypes.LIST),
     )
+
+    private inline fun <reified T : BinaryTag> toTypePair(type: TagType<T>) = type to T::class.simpleName
 
     fun Byte.toTag() = ByteTag.byteBinaryTag(this)
     fun Boolean.toTag() = (if (this) 1 else 0).toByte().toTag()
@@ -104,7 +106,12 @@ object NbtUtil {
     fun JsonArray.toIntArrayTag() = toBinaryTag(JsonElement::getAsInt) { it.toTag() }
     fun JsonArray.toLongArrayTag() = toBinaryTag(JsonElement::getAsLong) { it.toTag() }
 
-    fun JsonElement.serializeTag(): BinaryTag {
+    fun JsonElement.serializeTag(
+        objectKey: String? = null,
+        lazilyFunc: ((Pair<String?, LazilyParsedNumber>) -> BinaryTag) = { (_, n) ->
+            if (n.toString().contains(".")) n.toDouble().toTag() else n.toInt().toTag()
+        }
+    ): BinaryTag {
         when (this) {
             is JsonPrimitive -> return when {
                 isNumber -> when (val number = asNumber) {
@@ -114,14 +121,14 @@ object NbtUtil {
                     is Long -> number.toTag()
                     is Float -> number.toTag()
                     is Double -> number.toTag()
-                    is LazilyParsedNumber -> number.toInt().toTag()
+                    is LazilyParsedNumber -> lazilyFunc(objectKey to number)
                     else -> throw IllegalArgumentException("Unknown number type $number")
                 }
                 isString -> asString.toTag()
                 isBoolean -> asBoolean.toTag()
                 else -> throw IllegalArgumentException("Unknown json primitive $this")
             }
-            is JsonObject -> return compound(entrySet()) { (key, value) -> key to value.serializeTag() }
+            is JsonObject -> return compound(entrySet()) { (key, value) -> key to value.serializeTag(key, lazilyFunc) }
             is JsonArray -> {
                 if (isEmpty) return ListTag.empty()
                 val tagItems = mutableListOf<Tag>()
