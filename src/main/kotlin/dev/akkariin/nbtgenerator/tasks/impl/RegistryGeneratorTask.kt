@@ -28,7 +28,7 @@ import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask.ElementCleaner
 import dev.akkariin.nbtgenerator.util.FileUtil.hasDirectories
 import dev.akkariin.nbtgenerator.util.FileUtil.isMatched
 import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
-import dev.akkariin.nbtgenerator.util.NbtUtil.filterKeys
+import dev.akkariin.nbtgenerator.util.NbtUtil.removeKeys
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExcepted
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedCompound
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedString
@@ -262,7 +262,7 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
                 "minecraft:worldgen/biome" -> {
                     val lists = mutableListOf<CompoundBinaryTag>()
                     val ov = original.associate { (it.getExceptedString("name") to it.getExceptedCompound("compound")) }
-                    fun clean(o: CompoundBinaryTag) = o.filterKeys(USELESS_BIOME_ELEMENTS::contains)
+                    fun clean(o: CompoundBinaryTag) = o.removeKeys(USELESS_BIOME_ELEMENTS::contains)
                     lists.add(mapOf("name" to "minecraft:plains".toTag(), "id" to 0.toTag(), "element" to clean(ov["minecraft:plains"]!!)).toTag())
                     lists.add(mapOf("name" to "minecraft:swamp".toTag(), "id" to 1.toTag(), "element" to clean(ov["minecraft:swamp"]!!)).toTag())
                     lists
@@ -273,7 +273,7 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
         SIMPLE(ElementCleaner { type, original ->
             when (type) {
                 "minecraft:worldgen/biome" -> original.map { o -> modifyElement(o, null, USELESS_BIOME_ELEMENTS::contains) }
-                "minecraft:enchantment" -> original.map { o -> modifyElement(o, "effects") { (it as CompoundBinaryTag).filterKeys { key -> key == "minecraft:tick" } }}
+                "minecraft:enchantment" -> original.map { o -> modifyElement(o, "effects") { (it as CompoundBinaryTag).removeKeys { key -> key == "minecraft:tick" } }}
                 "minecraft:dimension_type" -> original.map { o -> modifyElement(o, "monster_spawn_light_level") { 0.toTag() } }
                 else -> original
             }
@@ -290,7 +290,7 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
             return mapOf(
                 "name" to original.getExcepted("name", Types.STRING),
                 "id" to original.getExcepted("id", Types.INT),
-                "element" to o.filterKeys(keyFilter)
+                "element" to o.removeKeys(keyFilter)
             ).toTag()
         }
 

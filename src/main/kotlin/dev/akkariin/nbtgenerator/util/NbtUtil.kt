@@ -165,7 +165,7 @@ object NbtUtil {
     fun CompoundTag.conditionMap(func: (Pair<String, BinaryTag>) -> Boolean)
     = filter { func(it.key to it.value) }.associate { it.key to it.value }.toTag()
 
-    fun CompoundTag.filterKeys(func: (String) -> Boolean) = conditionMap { (key, _) -> func(key) }
+    fun CompoundTag.removeKeys(func: (String) -> Boolean) = conditionMap { (key, _) -> !func(key) }
 
     fun ListBinaryTag.toCompoundList() = map { it as? CompoundBinaryTag ?: throw IllegalArgumentException("Excepted CompoundTag but found ${it::class.simpleName!!}") }
 }
