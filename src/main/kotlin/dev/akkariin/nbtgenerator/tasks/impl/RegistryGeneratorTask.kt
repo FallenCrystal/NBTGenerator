@@ -98,6 +98,12 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
         println("Apply ${cleaner.name} as element cleaner.")
         compound = cleaner.cleaner?.accept(compound) ?: compound
         setStage(runTest)
+        doTests(cleaner, compound)
+        setStage(saveToFile)
+        BinaryTagIO.writer().write(compound, output.also(File::delete).also(File::createNewFile).toPath(), BinaryTagIO.Compression.GZIP)
+    }
+
+    private fun doTests(cleaner: PresentsCleaner, compound: CompoundBinaryTag) {
         runTests("Check minecraft:dimension_type") {
             val names = testGetTypeAsKeyList(compound, "minecraft:dimension_type")
             require(names.contains("minecraft:overworld")) { "Registries doesn't have minecraft:overworld in minecraft:dimension_type" }
@@ -155,8 +161,6 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
                 }
             }
         }
-        setStage(saveToFile)
-        BinaryTagIO.writer().write(compound, output.also(File::delete).also(File::createNewFile).toPath(), BinaryTagIO.Compression.GZIP)
     }
 
     private fun searchFolder(prefix: String?, folder: File,
