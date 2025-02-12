@@ -168,4 +168,29 @@ object NbtUtil {
     fun CompoundTag.filterKeys(func: (String) -> Boolean) = conditionMap { (key, _) -> func(key) }
 
     fun ListBinaryTag.toCompoundList() = map { it as? CompoundBinaryTag ?: throw IllegalArgumentException("Excepted CompoundTag but found ${it::class.simpleName!!}") }
+
+    fun BinaryTag.toCompactString(): String = when (this) {
+        is IntTag -> value().toString()
+        is StringTag -> "\"${value()}\""
+        is LongTag -> value().toString() + "L"
+        is FloatTag -> value().toString() + "f"
+        is DoubleTag -> value().toString() + "d"
+        is ByteTag -> value().toString() + "b"
+        is ShortTag -> value().toString() + "s"
+        is LongArrayTag -> "[${value().joinToString { it.toString() + "L" }}]"
+        is IntArrayTag -> "[${value().joinToString()}]"
+        is ByteArrayTag -> "[${value().joinToString { it.toString() + "b" }}]"
+        is ListTag -> "[${joinToString { it.toCompactString() }}]"
+        is CompoundTag -> {
+            val sb = StringBuilder("{")
+            val iterator = iterator()
+            while (iterator.hasNext()) {
+                val entry = iterator.next()
+                sb.append("${entry.key}: ${entry.value.toCompactString()}")
+                if (iterator.hasNext()) sb.append(", ")
+            }
+            sb.append("}").toString()
+        }
+        else -> toString() // ?
+    }
 }
