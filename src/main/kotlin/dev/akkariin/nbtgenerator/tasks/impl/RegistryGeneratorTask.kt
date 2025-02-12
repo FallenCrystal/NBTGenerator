@@ -28,11 +28,11 @@ import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask.ElementCleaner
 import dev.akkariin.nbtgenerator.util.FileUtil.hasDirectories
 import dev.akkariin.nbtgenerator.util.FileUtil.isMatched
 import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
-import dev.akkariin.nbtgenerator.util.NbtUtil.filterKeys
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExcepted
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedCompound
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedString
 import dev.akkariin.nbtgenerator.util.NbtUtil.has
+import dev.akkariin.nbtgenerator.util.NbtUtil.removeKeys
 import dev.akkariin.nbtgenerator.util.NbtUtil.serializeTag
 import dev.akkariin.nbtgenerator.util.NbtUtil.toCompoundList
 import dev.akkariin.nbtgenerator.util.NbtUtil.toListTag
@@ -98,6 +98,12 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
         println("Apply ${cleaner.name} as element cleaner.")
         compound = cleaner.cleaner?.accept(compound) ?: compound
         setStage(runTest)
+        doTests(cleaner, compound)
+        setStage(saveToFile)
+        BinaryTagIO.writer().write(compound, output.also(File::delete).also(File::createNewFile).toPath(), BinaryTagIO.Compression.GZIP)
+    }
+
+    private fun doTests(cleaner: PresentsCleaner, compound: CompoundBinaryTag) {
         runTests("Check minecraft:dimension_type") {
             val names = testGetTypeAsKeyList(compound, "minecraft:dimension_type")
             require(names.contains("minecraft:overworld")) { "Registries doesn't have minecraft:overworld in minecraft:dimension_type" }
@@ -110,18 +116,41 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
             val names = testGetTypeAsKeyList(compound, "minecraft:worldgen/biome")
             require(names.contains("minecraft:plains")) { "Registries doesn't have minecraft:plains in minecraft:worldgen/biome" }
             require(names.contains("minecraft:swamp")) { "Registries doesn't have minecraft:swamp in minecraft:worldgen/biome" }
+            compound
+                .getExceptedCompound("minecraft:worldgen/biome")
+                .getExcepted("value", Types.LIST)
+                .toCompoundList()
+                .map { it.getExceptedString("name") to it.getExceptedCompound("element") }
+                .forEach { (name, element) ->
+                    require(element.has("temperature", Types.FLOAT)) { "$name doesn't have temperature as float." }
+                    require(element.has("downfall", Types.FLOAT)) { "$name doesn't have downfall as float." }
+                    val effects = element.getExceptedCompound("effects")
+                    arrayOf("sky_color", "water_fog_color", "fog_color", "water_color").forEach {
+                        require(effects.has(it, Types.INT)) { "$name doesn't have $it in their effects" }
+                    }
+                    val moodSound = effects.getExceptedCompound("mood_sound")
+                    mapOf(
+                        "tick_delay" to Types.INT,
+                        "offset" to Types.DOUBLE,
+                        "sound" to Types.STRING,
+                        "block_search_extent" to Types.INT
+                    ).forEach {
+                        require(moodSound.has(it.key, it.value))
+                        { "$name doesn't have mood_sound.${it.key} (${it.value::class.simpleName}) in their effects" }
+                    }
+                }
         }
         runTests("Check minecraft:wolf_variant") {
             if (compound["minecraft:wolf_variant"] != null) {
                 val names = testGetTypeAsKeyList(compound, "minecraft:wolf_variant")
                 require(names.contains("minecraft:ashen")) { "Registries doesn't have minecraft:ashen in minecraft:wolf_variant" }
                 val biomes = compound
-                    .getCompound("minecraft:worldgen/biome")
+                    .getExceptedCompound("minecraft:worldgen/biome")
                     .getExcepted("value", Types.LIST)
                     .toCompoundList()
                     .map { it.getExceptedString("name") }
                 val variants = compound
-                    .getCompound("minecraft:wolf_variant")
+                    .getExceptedCompound("minecraft:wolf_variant")
                     .getExcepted("value", Types.LIST)
                     .toCompoundList()
                     .associate { it.getExceptedString("name") to it.getExceptedCompound("element") }
@@ -132,8 +161,6 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
                 }
             }
         }
-        setStage(saveToFile)
-        BinaryTagIO.writer().write(compound, output.also(File::delete).also(File::createNewFile).toPath(), BinaryTagIO.Compression.GZIP)
     }
 
     private fun searchFolder(prefix: String?, folder: File,
@@ -154,7 +181,14 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
                     tags.add(mapOf(
                         "id" to index++.toTag(),
                         "name" to "minecraft:${file.name.removeSuffix(".json")}".toTag(),
-                        "element" to json.serializeTag()
+                        "element" to json.serializeTag(lazilyFunc = { (key, number) ->
+                            if (number.toString().contains("."))
+                                if (key != null && FLOAT_KEYS.contains(key))
+                                    number.toFloat().toTag()
+                                else
+                                    number.toDouble().toTag()
+                            else number.toInt().toTag()
+                        })
                     ).toTag())
                 } catch (e: Exception) {
                     println("Failed to parse file ${file.absolutePath}")
@@ -188,7 +222,7 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
 
     // Directly use CompoundBinaryTag#get to prevent create the empty tag for excepted type.
     private fun testGetTypeAsKeyList(tag: CompoundBinaryTag, type: String): List<String> {
-        val compound = tag.getExcepted(type, BinaryTagTypes.COMPOUND)
+        val compound = tag.getExceptedCompound(type)
         val lists = compound.getExcepted("value", BinaryTagTypes.LIST)
         return lists
             .asSequence()
@@ -262,7 +296,7 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
                 "minecraft:worldgen/biome" -> {
                     val lists = mutableListOf<CompoundBinaryTag>()
                     val ov = original.associate { (it.getExceptedString("name") to it.getExceptedCompound("compound")) }
-                    fun clean(o: CompoundBinaryTag) = o.filterKeys(USELESS_BIOME_ELEMENTS::contains)
+                    fun clean(o: CompoundBinaryTag) = o.removeKeys(USELESS_BIOME_ELEMENTS::contains)
                     lists.add(mapOf("name" to "minecraft:plains".toTag(), "id" to 0.toTag(), "element" to clean(ov["minecraft:plains"]!!)).toTag())
                     lists.add(mapOf("name" to "minecraft:swamp".toTag(), "id" to 1.toTag(), "element" to clean(ov["minecraft:swamp"]!!)).toTag())
                     lists
@@ -273,7 +307,7 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
         SIMPLE(ElementCleaner { type, original ->
             when (type) {
                 "minecraft:worldgen/biome" -> original.map { o -> modifyElement(o, null, USELESS_BIOME_ELEMENTS::contains) }
-                "minecraft:enchantment" -> original.map { o -> modifyElement(o, "effects") { (it as CompoundBinaryTag).filterKeys { key -> key == "minecraft:tick" } }}
+                "minecraft:enchantment" -> original.map { o -> modifyElement(o, "effects") { (it as CompoundBinaryTag).removeKeys { key -> key == "minecraft:tick" } }}
                 "minecraft:dimension_type" -> original.map { o -> modifyElement(o, "monster_spawn_light_level") { 0.toTag() } }
                 else -> original
             }
@@ -283,6 +317,11 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
 
     companion object {
         private val USELESS_BIOME_ELEMENTS = setOf("features", "spawners", "carvers", "spawn_costs")
+        private val FLOAT_KEYS = setOf(
+            "depth", "temperature", "scale", "downfall", //biome
+            "exhaustion", // damage type
+            "ambient_light" // dimension type
+        )
 
         fun modifyElement(original: CompoundBinaryTag, needModify: ((CompoundBinaryTag) -> Boolean)?, keyFilter: (String) -> Boolean): CompoundBinaryTag {
             val o = original.getExceptedCompound("element")
@@ -290,7 +329,7 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
             return mapOf(
                 "name" to original.getExcepted("name", Types.STRING),
                 "id" to original.getExcepted("id", Types.INT),
-                "element" to o.filterKeys(keyFilter)
+                "element" to o.removeKeys(keyFilter)
             ).toTag()
         }
 
