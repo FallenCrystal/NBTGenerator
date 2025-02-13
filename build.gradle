@@ -18,12 +18,19 @@ repositories {
     }
 }
 
+def adventureVersion = "4.17.0"
+
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
 
     implementation("org.jetbrains:annotations:26.0.1")
-    implementation("net.kyori:adventure-api:4.17.0")
-    implementation("net.kyori:adventure-nbt:4.17.0")
+
+    implementation("net.kyori:adventure-api:$adventureVersion")
+    implementation("net.kyori:adventure-nbt:$adventureVersion")
+    compileOnly("net.kyori:adventure-text-minimessage:$adventureVersion")
+    compileOnly("net.kyori:adventure-text-serializer-plain:$adventureVersion")
+    compileOnly("net.kyori:adventure-text-serializer-gson:$adventureVersion")
+
     implementation("com.google.code.gson:gson:2.11.0")
     implementation 'org.fusesource.jansi:jansi:2.4.1'
     implementation 'me.xdrop:fuzzywuzzy:1.4.0'

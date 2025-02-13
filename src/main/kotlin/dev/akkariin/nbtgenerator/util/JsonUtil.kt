@@ -62,6 +62,9 @@ object JsonUtil {
     fun JsonObject.number(key: String, message: String = string0("JsonPrimitive (Number)")) =
         this.getNumber<Number>(key, message) { it }
 
+    fun JsonObject.float(key: String, message: String = string0("JsonPrimitive (Float)")) =
+        getNumber<Float>(key, message, LazilyParsedNumber::toFloat)
+
     fun JsonObject.int(key: String, message: String = string0("JsonPrimitive (Int)")) =
         getNumber<Int>(key, message, LazilyParsedNumber::toInt)
 
