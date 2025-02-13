@@ -40,31 +40,8 @@ private typealias ListTag = ListBinaryTag
 private typealias TagTypes = BinaryTagTypes
 private typealias TagType<T> = BinaryTagType<T>
 
-@Suppress("MemberVisibilityCanBePrivate", "unused")
+@Suppress("MemberVisibilityCanBePrivate")
 object NbtUtil {
-    private inline fun <reified R : BinaryTag, reified N : Number, reified T> toBinaryTag(
-        array: JsonArray,
-        crossinline toBinaryTag: (T) -> R,
-        crossinline toN: (JsonElement) -> N,
-        crossinline toT: (Array<N>) -> T
-    ) = toBinaryTag(toT(Array(array.size()) { toN(array[it]) }))
-
-    val typeMap = mapOf(
-        toTypePair(TagTypes.BYTE),
-        toTypePair(TagTypes.SHORT),
-        toTypePair(TagTypes.INT),
-        toTypePair(TagTypes.LONG),
-        toTypePair(TagTypes.FLOAT),
-        toTypePair(TagTypes.DOUBLE),
-        toTypePair(TagTypes.STRING),
-        toTypePair(TagTypes.BYTE_ARRAY),
-        toTypePair(TagTypes.INT_ARRAY),
-        toTypePair(TagTypes.LONG_ARRAY),
-        toTypePair(TagTypes.COMPOUND),
-        toTypePair(TagTypes.LIST),
-    )
-
-    private inline fun <reified T : BinaryTag> toTypePair(type: TagType<T>) = type to T::class.simpleName
 
     fun Byte.toTag() = ByteTag.byteBinaryTag(this)
     fun Boolean.toTag() = (if (this) 1 else 0).toByte().toTag()
@@ -83,11 +60,6 @@ object NbtUtil {
     inline fun <reified V : Tag> Map<String, V>.toTag() = CompoundTag.from(this)
 
     private inline fun <reified T : Tag> toListTag(type: TagType<T>, collection: Collection<T>) = ListTag.builder(type).also { collection.forEach(it::add) }.build()
-    private inline fun <reified T, reified B : BinaryTag> Collection<T>.toListTag(type: TagType<B>, crossinline func: (T) -> B) = toListTag(type, map(func))
-
-    fun Collection<IntTag>.toIntTag() = toListTag(TagTypes.INT, this)
-    fun Collection<ByteTag>.toByteTag() = toListTag(TagTypes.BYTE, this)
-    fun Collection<LongTag>.toLongTag() = toListTag(TagTypes.LONG, this)
 
     fun Collection<CompoundTag>.toListTag() = toListTag(TagTypes.COMPOUND, this)
 
@@ -176,6 +148,7 @@ object NbtUtil {
 
     fun ListBinaryTag.toCompoundList() = map { it as? CompoundBinaryTag ?: throw IllegalArgumentException("Excepted CompoundTag but found ${it::class.simpleName!!}") }
 
+    @Suppress("unused")
     fun BinaryTag.toCompactString(): String = when (this) {
         is IntTag -> value().toString()
         is StringTag -> "\"${value()}\""
