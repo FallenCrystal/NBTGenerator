@@ -50,7 +50,7 @@ fun main(args: Array<String>) {
             println("Select a task to continue.")
             println("[1|registry] - RegistryGeneratorTask (1.18+)")
             println("[2|blocks] - ParseBlockTask (Test) (1.20+)")
-            println("[3|mapping] - CollectProtocolMappingTask (Test) (?)")
+            println("[3|mapping] - CollectProtocolMappingTask (Test) (1.18+)")
             try { Scanner(System.`in`).nextLine() } catch (e: Exception) { null }
         }
     ) {
