@@ -80,14 +80,16 @@ class CollectProtocolMappingTask(folder: File) : Task(folder) {
                 exception.addException(t)
             }
         }
-        if (exception.isNotEmpty()) throw exception
+        exception.throwIfNotEmpty()
         var categoryCount = 0
         var entriesCount = 0
-        wrappedRegistry.values.forEach {
+        wrappedRegistry.forEach { (key, value) ->
+            println("$key: ${value.size()} entire(s)")
             categoryCount++
-            entriesCount += it.size()
+            entriesCount += value.size()
+            this.map[key] = value
         }
-        println("Collected $categoryCount registries with $entriesCount entries.")
+        println("Category count: $categoryCount, Total entries: $entriesCount")
     }
 
 }

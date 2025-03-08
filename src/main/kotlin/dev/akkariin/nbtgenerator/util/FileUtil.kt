@@ -38,4 +38,14 @@ object FileUtil {
     fun File.existOrThrow() = this.apply {
         require(exists()) { "File does not exist: $absolutePath" }
     }
+
+    fun File.removeAndCreate() = this.also(File::delete).also(File::createNewFile)
+
+    fun File.hasNonDirectory(): Boolean {
+        for (file in this.listFiles()!!) {
+            if (!file.isDirectory)
+                return true
+        }
+        return false
+    }
 }

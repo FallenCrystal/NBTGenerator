@@ -68,7 +68,7 @@ class ParseBlockTask(folder: File) : Task(folder) {
                 exception.addException(t)
             }
         }
-        if (exception.isNotEmpty()) throw exception
+        exception.throwIfNotEmpty()
         setStage(mappingId)
         blocksData.values.forEach { block -> block.blockStates.forEach { idMapping[it.id] = it } }
     }

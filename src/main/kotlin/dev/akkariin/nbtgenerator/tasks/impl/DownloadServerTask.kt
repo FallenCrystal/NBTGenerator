@@ -33,8 +33,9 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.channels.Channels
+import java.util.*
 
-class DownloadTask(folder: File) : Task(folder) {
+class DownloadServerTask(folder: File) : Task(folder) {
 
     private val internetSuggestion = listOf(
         "Check in your browser to see if you can browse the links mentioned in the logs.",
@@ -110,7 +111,26 @@ class DownloadTask(folder: File) : Task(folder) {
     }
 
     private fun printVersions(collector: Collector) {
-        TODO("Cannot print versions for this time.")
+        val release = collector.latestRelease
+        println("Latest Release: ${release.id} (Release at ${release.releaseTime})")
+        val snapshot = collector.latestSnapshot
+        println("Latest Snapshot: ${snapshot.id} (Snapshot at ${snapshot.releaseTime})")
+        println("========================================")
+        val iterator = collector.versions().iterator()
+        fun print() {
+            var i = 0
+            while (i < 10 && iterator.hasNext()) {
+                i++
+                val version = iterator.next()
+                println("${version.id} (${version.type.name}, release at ${version.releaseTime})")
+            }
+        }
+        println("Print 10 versions first. Press Enter to print more versions. Or enter ^C / exit / quit to quit.")
+        while (iterator.hasNext()) {
+            print()
+            val input = try { Scanner(System.`in`).nextLine() } catch (_: NoSuchElementException) { null }
+            if (input == null || input == "exit" || input == "quit") break
+        }
     }
 
     private fun checkEnvironment(data: MinecraftVersion.Data) {

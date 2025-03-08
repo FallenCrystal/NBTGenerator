@@ -27,6 +27,7 @@ import dev.akkariin.nbtgenerator.tasks.Task
 import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask.ElementCleaner
 import dev.akkariin.nbtgenerator.util.FileUtil.hasDirectories
 import dev.akkariin.nbtgenerator.util.FileUtil.isMatched
+import dev.akkariin.nbtgenerator.util.FileUtil.removeAndCreate
 import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExcepted
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedCompound
@@ -38,13 +39,19 @@ import dev.akkariin.nbtgenerator.util.NbtUtil.toCompoundList
 import dev.akkariin.nbtgenerator.util.NbtUtil.toListTag
 import dev.akkariin.nbtgenerator.util.NbtUtil.toTag
 import net.kyori.adventure.nbt.*
+import org.fusesource.jansi.Ansi
 import java.io.File
 import java.io.FileReader
 import java.util.concurrent.TimeUnit
 
 private typealias Types = BinaryTagTypes
 
-class RegistryGeneratorTask(folder: File, private val output: File) : Task(folder) {
+class RegistryGeneratorTask(
+    folder: File,
+    private val output: File?,
+    private val cleaner: PresentsCleaner? = null,
+    private val disablePathFilter: Boolean = false
+) : Task(folder) {
    // Stages
    @Suppress("SpellCheckingInspection")
    private val lookingForPath = Stage("Looking for path", "Looking worldgen file path for generate codec") {
@@ -63,12 +70,16 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
 
     override fun initialize() = arrayOf(lookingForPath, collectData, applyCleaner, runTest, saveToFile)
 
+    var result: CompoundBinaryTag? = null
+
     override fun execute(parser: ArgsParser) {
         setStage(lookingForPath)
         val path = searchPath()
         println("Set ${path.absolutePath} as registry path.")
         setStage(collectData)
-        val pathFilter = PathFilter.ListPathFilter()
+        val pathFilter = if (this.disablePathFilter
+            || parser.parse(Arg.of("disable-path-filter", "Disable the path filter for registry", false))) null
+        else PathFilter.ListPathFilter()
         val builder = CompoundBinaryTag.builder()
         for (folder in path.listFiles()!!) {
             if (!folder.isDirectory) continue
@@ -76,31 +87,38 @@ class RegistryGeneratorTask(folder: File, private val output: File) : Task(folde
         }
         var compound = builder.build()
         setStage(applyCleaner)
-        val cleaner = when (parser
-            .parse(Arg.of("cleaner", "Default cleaner for registry output", "null"))
-            .takeUnless { it == "null" }
-            ?: run {
-                println("What cleaner do you want to apply for output? (Timeout: 5s, Default value for SIMPLE)")
-                println("0: NONE, 1: SIMPLE, 2: FULL")
-                println("TIP: You can re-run the task with new choose at anytime.")
-                println("TIP: You can run application with \"--cleaner [choose]\" parameters.")
-                getInput(5, TimeUnit.SECONDS, "1") ?: "1"
+        val cleaner = this.cleaner
+            ?: when (parser
+                .parse(Arg.of("cleaner", "Default cleaner for registry output", "null"))
+                .takeUnless { it == "null" }
+                ?: run {
+                    println("What cleaner do you want to apply for output? (Timeout: 5s, Default value for SIMPLE)")
+                    println("0: NONE, 1: SIMPLE, 2: FULL")
+                    println("TIP: You can re-run the task with new choose at anytime.")
+                    println("TIP: You can run application with \"--cleaner [choose]\" parameters.")
+                    println("TIP: Are you try to generate entire registry without path filter? Add \"--disable-path-filter true\" at the end.")
+                    getInput(5, TimeUnit.SECONDS, "1") ?: "1"
+                }
+            ) {
+                "0", "NONE", "none" -> PresentsCleaner.NONE
+                "1", "SIMPLE", "simple" -> PresentsCleaner.SIMPLE
+                "2", "FULL", "full" -> PresentsCleaner.FULL
+                else -> {
+                    println("Unknown input. Selecting default value (SIMPLE).")
+                    PresentsCleaner.SIMPLE
+                }
             }
-        ) {
-            "0", "NONE", "none" -> PresentsCleaner.NONE
-            "1", "SIMPLE", "simple" -> PresentsCleaner.SIMPLE
-            "2", "FULL", "full" -> PresentsCleaner.FULL
-            else -> {
-                println("Unknown input. Selecting default value (SIMPLE).")
-                PresentsCleaner.SIMPLE
-            }
-        }
         println("Apply ${cleaner.name} as element cleaner.")
         compound = cleaner.cleaner?.accept(compound) ?: compound
         setStage(runTest)
         doTests(cleaner, compound)
+        result = compound
         setStage(saveToFile)
-        BinaryTagIO.writer().write(compound, output.also(File::delete).also(File::createNewFile).toPath(), BinaryTagIO.Compression.GZIP)
+        if (output == null) {
+            println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("No output directory specified. Skipping saving to file.").fg(Ansi.Color.DEFAULT))
+        } else {
+            BinaryTagIO.writer().write(compound, output.removeAndCreate().toPath(), BinaryTagIO.Compression.GZIP)
+        }
     }
 
     private fun doTests(cleaner: PresentsCleaner, compound: CompoundBinaryTag) {

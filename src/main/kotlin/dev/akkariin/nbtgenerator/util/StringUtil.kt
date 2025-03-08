@@ -15,17 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.akkariin.nbtgenerator.data
+package dev.akkariin.nbtgenerator.util
 
-class MultiException(override val message: String = "Multi exception throws") : RuntimeException(message) {
-    private val exceptions = mutableListOf<Throwable>()
-    fun addException(e: Throwable) = exceptions.add(e)
-    fun getExceptions(): List<Throwable> = exceptions
-    @Suppress("MemberVisibilityCanBePrivate")
-    fun isEmpty() = exceptions.isEmpty()
-    fun isNotEmpty() = !isEmpty()
+object StringUtil {
+    private val namespaceWithoutPath = Regex("""^[a-z0-9]([a-z0-9_.-]*[a-z0-9])?:[a-z0-9]([a-z0-9_.-]*[a-z0-9])?$""")
+    private val namespaceWithPath = Regex("""^[a-z0-9]([a-z0-9_.-]*[a-z0-9])?:[a-z0-9]([a-z0-9_.-]*[a-z0-9])?(/[a-z0-9]([a-z0-9_.-]*[a-z0-9])?)*$""")
 
-    fun throwIfNotEmpty() {
-        if (isNotEmpty()) throw this
+    fun String.checkNamespace(path: Boolean = false) {
+        val regex = if (path) namespaceWithPath else namespaceWithoutPath
+        require(regex.matches(this)) { "String $this isn't a valid namespace (path: $path)" }
     }
 }

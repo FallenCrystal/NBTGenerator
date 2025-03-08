@@ -22,10 +22,7 @@ import dev.akkariin.nbtgenerator.args.ArgsParser
 import dev.akkariin.nbtgenerator.data.MultiException
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
-import dev.akkariin.nbtgenerator.tasks.impl.CollectProtocolMappingTask
-import dev.akkariin.nbtgenerator.tasks.impl.DownloadTask
-import dev.akkariin.nbtgenerator.tasks.impl.ParseBlockTask
-import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask
+import dev.akkariin.nbtgenerator.tasks.impl.*
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 import java.io.File
@@ -39,8 +36,9 @@ fun main(args: Array<String>) {
     var folder = File(System.getProperty("user.dir"))
     val skippingTest = parser.parse(Arg.of("skipTests", "", false))
     if (version != "null") {
-        val task = DownloadTask(folder)
+        val task = DownloadServerTask(folder)
         runTask(task, parser, skippingTest)
+        if (version == "list") return
         task.downloadFolder?.apply { folder = this }
         println("Redirect generated folder to $folder")
     }
@@ -51,6 +49,7 @@ fun main(args: Array<String>) {
             println("[1|registry] - RegistryGeneratorTask (1.18+)")
             println("[2|blocks] - ParseBlockTask (Test) (1.20+)")
             println("[3|mapping] - CollectProtocolMappingTask (Test) (1.18+)")
+            println("[4|tags] - GenerateProtocolTagTask")
             try { Scanner(System.`in`).nextLine() } catch (e: Exception) { null }
         }
     ) {
@@ -62,7 +61,7 @@ fun main(args: Array<String>) {
                     parser.parse(Arg.of(
                         "output",
                         "Output file name",
-                        if (version == "null") "output.nbt" else folder.name.replace(".", "_") + ".nbt"
+                        if (version == "null") "output.nbt" else "codec_" + folder.name.replace(".", "_") + ".nbt"
                     ))
                 )),
                 parser,
@@ -74,6 +73,22 @@ fun main(args: Array<String>) {
         }
         "3", "mapping" -> {
             runTask(CollectProtocolMappingTask(File(folder, "generated")), parser, skippingTest)
+        }
+        "4", "tags" -> {
+            val directory = File(folder, "generated")
+            val protocolTask = CollectProtocolMappingTask(directory)
+            runTask(protocolTask, parser, skippingTest)
+            val registry = RegistryGeneratorTask(directory, null, RegistryGeneratorTask.PresentsCleaner.NONE, true)
+            runTask(registry, parser, skippingTest)
+            val output = File(
+                File(System.getProperty("user.dir")),
+                parser.parse(Arg.of(
+                    "output",
+                    "Output file name",
+                    if (version == "null") "tags.nbt" else "tags_" + folder.name.replace(".", "_") + ".nbt"
+                ))
+            )
+            runTask(GenerateProtocolTagTask(directory, protocolTask.map, registry.result, output), parser, skippingTest)
         }
         else -> {
             println("Unknown input $task. Exiting.")
