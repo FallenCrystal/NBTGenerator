@@ -89,5 +89,5 @@ abstract class Task(val folder: File) {
         }
     }
 
-    class TestFailedException(cause: Throwable) : RuntimeException(cause)
+    class TestFailedException(cause: Throwable, message: String? = null) : RuntimeException(message, cause)
 }

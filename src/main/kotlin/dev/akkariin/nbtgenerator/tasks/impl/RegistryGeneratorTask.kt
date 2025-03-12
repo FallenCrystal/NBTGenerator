@@ -33,6 +33,7 @@ import dev.akkariin.nbtgenerator.util.NbtUtil.getExcepted
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedCompound
 import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedString
 import dev.akkariin.nbtgenerator.util.NbtUtil.has
+import dev.akkariin.nbtgenerator.util.NbtUtil.hasString
 import dev.akkariin.nbtgenerator.util.NbtUtil.removeKeys
 import dev.akkariin.nbtgenerator.util.NbtUtil.serializeTag
 import dev.akkariin.nbtgenerator.util.NbtUtil.toCompoundList
@@ -162,7 +163,7 @@ class RegistryGeneratorTask(
             if (compound["minecraft:wolf_variant"] != null) {
                 val names = testGetTypeAsKeyList(compound, "minecraft:wolf_variant")
                 require(names.contains("minecraft:ashen")) { "Registries doesn't have minecraft:ashen in minecraft:wolf_variant" }
-                val biomes = compound
+                val registeredBiomes = compound
                     .getExceptedCompound("minecraft:worldgen/biome")
                     .getExcepted("value", Types.LIST)
                     .toCompoundList()
@@ -173,9 +174,45 @@ class RegistryGeneratorTask(
                     .toCompoundList()
                     .associate { it.getExceptedString("name") to it.getExceptedCompound("element") }
                 for ((name, element) in variants) {
-                    val biome = element.getExceptedString("biomes")
-                    if (biome.startsWith("#")) continue // Skipping tags
-                    require(biomes.contains(biome)) { "Wolf variant ($name) that requires spawn at biome $biome, But not found in minecraft:worldgen/biome" }
+                    // Check biomes
+                    try {
+                        val biomes = if (element.has("spawn_conditions", BinaryTagTypes.LIST)) {
+                            element
+                                .getExcepted("spawn_conditions", BinaryTagTypes.LIST)
+                                .asSequence()
+                                .map { it as CompoundBinaryTag }
+                                .apply { forEach { it.has("priority", BinaryTagTypes.INT) } }
+                                .filter { it.has("condition", BinaryTagTypes.COMPOUND) }
+                                .map { it.getExceptedCompound("condition") }
+                                .filter { it.getExceptedString("type") != "minecraft:biome" }
+                                .map { it.getExceptedString("biomes") }
+                                .toList()
+                        } else if (element.hasString("biomes")) {
+                            listOf(element.getExceptedString("biomes"))
+                        } else {
+                            throw IllegalArgumentException("Cannot found biomes in $name")
+                        }
+
+                        for (biome in biomes) {
+                            if (biome.startsWith("#")) continue
+                            require(registeredBiomes.contains(biome)) { "Wolf variant $name that required $biome to spawn, But not found in registry." }
+                        }
+
+                        // Check assets
+                        if (element.has("assets", BinaryTagTypes.COMPOUND)) {
+                            val assets = element.getExceptedCompound("assets")
+                            for (key in listOf("angry", "tame", "wild")) {
+                                require(assets.hasString(key)) { "Not found key $key in assets in wolf variant $name" }
+                            }
+                        } else {
+                            for (key in listOf("angry", "tame", "wild")) {
+                                require(element.hasString("${key}_texture"))
+                                { "Not found key ${key}_texture wolf variant $name" }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        throw TestFailedException(e, "Failed to tests for $name")
+                    }
                 }
             }
         }
@@ -310,10 +347,31 @@ class RegistryGeneratorTask(
                     IntBinaryTag.intBinaryTag(0)
                 })
                 "minecraft:painting_variant" -> listOf(original.first())
-                "minecraft:wolf_variant" -> listOf(modifyElement(original.first { it.getExceptedString("name") == "minecraft:ashen" }, "biomes") { "minecraft:plains".toTag() })
+                "minecraft:wolf_variant" -> {
+                    val element = original.first { it.getExceptedString("name") == "minecraft:ashen" }.getExceptedCompound("element")
+                    listOf(CompoundBinaryTag
+                        .builder()
+                        .putString("name", "minecraft:ashen")
+                        .putInt("id", 0)
+                        .put("element", if (element.has("spawn_conditions", BinaryTagTypes.LIST)) {
+                            mapOf(
+                                "assets" to element.getExceptedCompound("assets"),
+                                "spawn_conditions" to listOf(mapOf("priority" to 1.toTag()).toTag()).toListTag()
+                            )
+                        } else {
+                            mapOf(
+                                "angry_texture" to element.getExcepted("angry_texture", BinaryTagTypes.STRING),
+                                "tame_texture" to element.getExcepted("tame_texture", BinaryTagTypes.STRING),
+                                "wild_texture" to element.getExcepted("wild_texture", BinaryTagTypes.STRING),
+                                "biomes" to "minecraft:plains".toTag()
+                            )
+                        }.toTag())
+                        .build()
+                    )
+                }
                 "minecraft:worldgen/biome" -> {
                     val lists = mutableListOf<CompoundBinaryTag>()
-                    val ov = original.associate { (it.getExceptedString("name") to it.getExceptedCompound("compound")) }
+                    val ov = original.associate { (it.getExceptedString("name") to it.getExceptedCompound("element")) }
                     fun clean(o: CompoundBinaryTag) = o.removeKeys(USELESS_BIOME_ELEMENTS::contains)
                     lists.add(mapOf("name" to "minecraft:plains".toTag(), "id" to 0.toTag(), "element" to clean(ov["minecraft:plains"]!!)).toTag())
                     lists.add(mapOf("name" to "minecraft:swamp".toTag(), "id" to 1.toTag(), "element" to clean(ov["minecraft:swamp"]!!)).toTag())

@@ -159,6 +159,8 @@ object NbtUtil {
         return (this[name] ?: return false).type() == exceptedType
     }
 
+    fun CompoundTag.hasString(name: String) = has(name, TagTypes.STRING)
+
     inline fun <reified T : BinaryTag> CompoundTag.getExcepted(name: String, exceptedType: TagType<T>): T {
         val typeName by lazy { T::class.simpleName!! }
         val value = this[name] ?: throw IllegalArgumentException("Excepted $typeName but found null.")
