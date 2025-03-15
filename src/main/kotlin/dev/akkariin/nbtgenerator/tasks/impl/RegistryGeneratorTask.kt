@@ -94,9 +94,8 @@ class RegistryGeneratorTask(
                 .takeUnless { it == "null" }
                 ?: run {
                     println("What cleaner do you want to apply for output? (Timeout: 5s, Default value for SIMPLE)")
-                    println("0: NONE, 1: SIMPLE, 2: FULL")
-                    println("TIP: You can re-run the task with new choose at anytime.")
-                    println("TIP: You can run application with \"--cleaner [choose]\" parameters.")
+                    println("0: NONE, 1: SIMPLE, 2: FULL, 3: ID_ONLY")
+                    println("TIP: You can run application with \"--cleaner [choose]\" parameters. You can also specify the cleaner name instead of a number.")
                     println("TIP: Are you try to generate entire registry without path filter? Add \"--disable-path-filter true\" at the end.")
                     getInput(5, TimeUnit.SECONDS, "1") ?: "1"
                 }
@@ -104,6 +103,7 @@ class RegistryGeneratorTask(
                 "0", "NONE", "none" -> PresentsCleaner.NONE
                 "1", "SIMPLE", "simple" -> PresentsCleaner.SIMPLE
                 "2", "FULL", "full" -> PresentsCleaner.FULL
+                "3", "ID", "id", "ID_ONLY", "id_only" -> PresentsCleaner.ID_ONLY
                 else -> {
                     println("Unknown input. Selecting default value (SIMPLE).")
                     PresentsCleaner.SIMPLE
@@ -123,6 +123,10 @@ class RegistryGeneratorTask(
     }
 
     private fun doTests(cleaner: PresentsCleaner, compound: CompoundBinaryTag) {
+        if (cleaner == PresentsCleaner.ID_ONLY) {
+            println(Ansi.ansi().fg(Ansi.Color.GREEN).a("Skipping tests because cleaner is ID_ONLY").fg(Ansi.Color.DEFAULT))
+            return
+        }
         runTests("Check minecraft:dimension_type") {
             val names = testGetTypeAsKeyList(compound, "minecraft:dimension_type")
             require(names.contains("minecraft:overworld")) { "Registries doesn't have minecraft:overworld in minecraft:dimension_type" }
@@ -340,6 +344,12 @@ class RegistryGeneratorTask(
     }
 
     enum class PresentsCleaner(val cleaner: ElementCleaner? = null) {
+        ID_ONLY(ElementCleaner { _, original -> original.map { compound -> CompoundBinaryTag
+            .builder()
+            .put("name", compound.getExcepted("name", BinaryTagTypes.STRING))
+            .put("id", compound.getExcepted("id", BinaryTagTypes.INT))
+            .build()
+        } }),
         FULL(ElementCleaner { type, original ->
             when (type) {
                 "minecraft:chat_type", "minecraft:damage_type" -> original
