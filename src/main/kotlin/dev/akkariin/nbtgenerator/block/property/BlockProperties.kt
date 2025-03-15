@@ -44,10 +44,12 @@ object BlockProperties {
     val sculkSensorPhase = BlockProperty.create("sculk_sensor_phase", SculkSensorPhase::parse)
     val comparatorMode = BlockProperty.create("mode", ComparatorMode::parse)
     val structureBlockMode = BlockProperty.create("mode", StructureBlockMode::parse)
+    val testBlockMode = BlockProperty.create("mode", TestBlockMode::parse)
     val orientation = BlockProperty.create("orientation", BlockOrientation::parse)
     val instrument = BlockProperty.create("instrument", NoteBlockInstrument::parse)
     val trialSpawnerState = BlockProperty.create("trial_spawner_state", TrialSpawnerState::parse) // Trial Spawner
     val vaultState = BlockProperty.create("vault_state", VaultState::parse) // Vault
+    val creakingHeartState = BlockProperty.create("creaking_heart_state", CreakingHeartState::parse) // Creaking Heart
 
     // Creaking heart
     val creaking = BlockProperty.create("creaking", Creaking.Enum::parse) // Legacy
@@ -132,6 +134,7 @@ object BlockProperties {
     val dusted = BlockProperty.createInt("dusted", 0, 3) // Suspicious Gravel & Sand
     val eggs = BlockProperty.createInt("eggs", 1, 4) // Turtle Egg
     val note = BlockProperty.createInt("note", 0, 24) // Note Block
+    val segmentAmount = BlockProperty.createInt("segment_amount", 1, 4)
 
     // Chiseled Bookshelf
     private val slotOccupied = arrayOf(0, 1, 2, 3, 4, 5).map {
@@ -173,11 +176,12 @@ object BlockProperties {
     }
 
     private val map = arrayOf(face, facing, hinge, thickness, verticalDirection, leaves,
-        attachment, tilt, part, sculkSensorPhase, orientation, instrument, trialSpawnerState, vaultState, powered, waterlogged, inWall,
-        attached, persistent, natural, snowy, occupied, lit, hasBottle0, hasBottle1, hasBottle2, drag, up, signalFire, berries, conditional,
-        crafting, inverted, cracked, triggered, eye, enabled, hasRecord, hanging, hasBook, tip, bottom, extended, short, bloom,
-        canSummon, unstable, ominous, disarmed, locked, shrieking, down, open, rotation, stage, honeyLevel, candles, bites,
-        power, moisture, flowerAmount, delay, charges, pickles, hatch, layers, dusted, eggs, note, active, creaking).associateBy { it.name() }
+        attachment, tilt, part, sculkSensorPhase, orientation, instrument, trialSpawnerState, vaultState, creakingHeartState, powered,
+        waterlogged, inWall, attached, persistent, natural, snowy, occupied, lit, hasBottle0, hasBottle1, hasBottle2, drag, up, signalFire,
+        berries, conditional, crafting, inverted, cracked, triggered, eye, enabled, hasRecord, hanging, hasBook, tip, bottom, extended,
+        short, bloom, canSummon, unstable, ominous, disarmed, locked, shrieking, down, open, rotation, stage, honeyLevel, candles,
+        bites, power, moisture, flowerAmount, delay, charges, pickles, hatch, layers, dusted, eggs, note, active, creaking,
+        segmentAmount).associateBy { it.name() }
 
     fun getProperties(raw: JsonObject): List<BlockProperty<*>> {
         val properties = mutableListOf<BlockProperty<*>>()
@@ -214,6 +218,7 @@ object BlockProperties {
                 "mode" -> when {
                     array.containsAll(ComparatorMode.names) -> comparatorMode
                     array.containsAll(StructureBlockMode.names) -> structureBlockMode
+                    array.containsAll(TestBlockMode.names) -> testBlockMode
                     else -> throw IllegalArgumentException("Unknown mode with value: $array")
                 }
                 "level" -> when(array.last().toInt()) {
