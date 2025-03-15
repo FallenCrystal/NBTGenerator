@@ -25,12 +25,12 @@ import dev.akkariin.nbtgenerator.protocol.ProtocolData
 import dev.akkariin.nbtgenerator.protocol.ProtocolRegistry
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
-import dev.akkariin.nbtgenerator.util.FileUtil.existOrThrow
-import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
-import dev.akkariin.nbtgenerator.util.JsonUtil.exceptedAsJsonObject
-import dev.akkariin.nbtgenerator.util.JsonUtil.int
-import dev.akkariin.nbtgenerator.util.JsonUtil.getObject
-import dev.akkariin.nbtgenerator.util.JsonUtil.stringOrNull
+import dev.akkariin.nbtgenerator.util.existOrThrow
+import dev.akkariin.nbtgenerator.util.JsonExtension.exceptedAsJsonObject
+import dev.akkariin.nbtgenerator.util.JsonExtension.int
+import dev.akkariin.nbtgenerator.util.JsonExtension.getObject
+import dev.akkariin.nbtgenerator.util.JsonExtension.stringOrNull
+import dev.akkariin.nbtgenerator.util.toFilePath
 import java.io.File
 import java.io.FileReader
 

@@ -23,9 +23,8 @@ class MultiException(override val message: String = "Multi exception throws") : 
     fun getExceptions(): List<Throwable> = exceptions
     @Suppress("MemberVisibilityCanBePrivate")
     fun isEmpty() = exceptions.isEmpty()
-    fun isNotEmpty() = !isEmpty()
 
     fun throwIfNotEmpty() {
-        if (isNotEmpty()) throw this
+        if (!isEmpty()) throw this
     }
 }

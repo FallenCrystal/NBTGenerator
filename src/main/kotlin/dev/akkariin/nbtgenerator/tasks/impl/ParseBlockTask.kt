@@ -25,9 +25,9 @@ import dev.akkariin.nbtgenerator.block.BlockState
 import dev.akkariin.nbtgenerator.data.MultiException
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
-import dev.akkariin.nbtgenerator.util.FileUtil.existOrThrow
-import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
-import dev.akkariin.nbtgenerator.util.JsonUtil.exceptedAsJsonObject
+import dev.akkariin.nbtgenerator.util.JsonExtension.exceptedAsJsonObject
+import dev.akkariin.nbtgenerator.util.existOrThrow
+import dev.akkariin.nbtgenerator.util.toFilePath
 import java.io.File
 import java.io.FileReader
 

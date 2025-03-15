@@ -25,9 +25,8 @@ import dev.akkariin.nbtgenerator.data.MinecraftVersion
 import dev.akkariin.nbtgenerator.data.MinecraftVersion.Collector
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
-import dev.akkariin.nbtgenerator.util.FileUtil
-import dev.akkariin.nbtgenerator.util.HttpsUtil
-import dev.akkariin.nbtgenerator.util.JsonUtil.exceptedAsJsonObject
+import dev.akkariin.nbtgenerator.util.*
+import dev.akkariin.nbtgenerator.util.JsonExtension.exceptedAsJsonObject
 import org.fusesource.jansi.Ansi
 import java.io.File
 import java.io.FileOutputStream
@@ -74,7 +73,7 @@ class DownloadServerTask(folder: File) : Task(folder) {
         setStage(fetchVersions)
         val collector = ofTries("fetch versions", maxTries) {
             Collector.from(Gson()
-                .fromJson(HttpsUtil.readString("https://piston-meta.mojang.com/mc/game/version_manifest.json"), JsonElement::class.java)
+                .fromJson(readStringFromUrl("https://piston-meta.mojang.com/mc/game/version_manifest.json"), JsonElement::class.java)
                 .exceptedAsJsonObject()
             )
         }
@@ -150,7 +149,7 @@ class DownloadServerTask(folder: File) : Task(folder) {
             .let { File(it, "${data.minecraftVersion.id}.jar") }
         val server = data.downloads.server
         if (file.exists()) {
-            val sha1 = FileUtil.getSha1(file)
+            val sha1 = getSha1(file)
             val exceptedSha1 = server.sha1
             if (sha1 != exceptedSha1) {
                 println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("Unable to check file integrity. Excepted sha1: $exceptedSha1 but got $sha1"))
@@ -162,13 +161,13 @@ class DownloadServerTask(folder: File) : Task(folder) {
         }
         if (!file.exists()) file.createNewFile()
         ofTries("download server for version ${data.minecraftVersion.id}", maxTries, file::delete) {
-            Channels.newChannel(HttpsUtil.openConnection(server.url).inputStream).use { channel ->
+            Channels.newChannel(openConnection(server.url).inputStream).use { channel ->
                 FileOutputStream(file).use { output ->
                     output.channel.transferFrom(channel, 0, Long.MAX_VALUE)
                 }
             }
-            if (FileUtil.getSha1(file) != server.sha1)
-                throw IOException("Failed file integrity check. Excepted ${server.sha1} but got ${FileUtil.getSha1(file)}")
+            if (getSha1(file) != server.sha1)
+                throw IOException("Failed file integrity check. Excepted ${server.sha1} but got ${getSha1(file)}")
         }
         return file
     }

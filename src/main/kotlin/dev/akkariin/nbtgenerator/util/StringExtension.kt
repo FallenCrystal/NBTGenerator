@@ -17,12 +17,10 @@
 
 package dev.akkariin.nbtgenerator.util
 
-object StringUtil {
-    private val namespaceWithoutPath = Regex("""^[a-z0-9]([a-z0-9_.-]*[a-z0-9])?:[a-z0-9]([a-z0-9_.-]*[a-z0-9])?$""")
-    private val namespaceWithPath = Regex("""^[a-z0-9]([a-z0-9_.-]*[a-z0-9])?:[a-z0-9]([a-z0-9_.-]*[a-z0-9])?(/[a-z0-9]([a-z0-9_.-]*[a-z0-9])?)*$""")
+private val namespaceWithoutPath = Regex("""^[a-z0-9]([a-z0-9_.-]*[a-z0-9])?:[a-z0-9]([a-z0-9_.-]*[a-z0-9])?$""")
+private val namespaceWithPath = Regex("""^[a-z0-9]([a-z0-9_.-]*[a-z0-9])?:[a-z0-9]([a-z0-9_.-]*[a-z0-9])?(/[a-z0-9]([a-z0-9_.-]*[a-z0-9])?)*$""")
 
-    fun String.checkNamespace(path: Boolean = false) {
-        val regex = if (path) namespaceWithPath else namespaceWithoutPath
-        require(regex.matches(this)) { "String $this isn't a valid namespace (path: $path)" }
-    }
+fun String.checkNamespace(path: Boolean = false) {
+    val regex = if (path) namespaceWithPath else namespaceWithoutPath
+    require(regex.matches(this)) { "String $this isn't a valid namespace (path: $path)" }
 }

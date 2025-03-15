@@ -22,34 +22,31 @@ import java.io.InputStreamReader
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 
-object HttpsUtil {
-
-    fun readString(url: String): String {
-        val connection = openConnection(url)
-        connection.connectTimeout = 10000
-        connection.readTimeout = 10000
-        connection.requestMethod = "GET"
-        if (connection.responseCode != 200) {
-            val code = connection.responseCode
-            val input = BufferedReader(InputStreamReader(if (code in 200..299) connection.inputStream else connection.errorStream))
-            // Strange tricks to avoid empty body warnings
-            while (input.readLine()?.also(::println) != null) continue
-            throw UnsupportedOperationException("Unexpected response code: $code. (Excepted 200)")
-        }
-        val sb = StringBuilder()
-        val input = BufferedReader(InputStreamReader(connection.inputStream))
-        while (input.readLine()?.also(sb::append) != null) continue
-        return sb.toString()
+fun readStringFromUrl(url: String): String {
+    val connection = openConnection(url)
+    connection.connectTimeout = 10000
+    connection.readTimeout = 10000
+    connection.requestMethod = "GET"
+    if (connection.responseCode != 200) {
+        val code = connection.responseCode
+        val input = BufferedReader(InputStreamReader(if (code in 200..299) connection.inputStream else connection.errorStream))
+        // Strange tricks to avoid empty body warnings
+        while (input.readLine()?.also(::println) != null) continue
+        throw UnsupportedOperationException("Unexpected response code: $code. (Excepted 200)")
     }
+    val sb = StringBuilder()
+    val input = BufferedReader(InputStreamReader(connection.inputStream))
+    while (input.readLine()?.also(sb::append) != null) continue
+    return sb.toString()
+}
 
-    fun openConnection(url: String): HttpsURLConnection {
-        println("Connecting to $url")
-        val connection = URL(url).openConnection() as? HttpsURLConnection
-            ?: throw IllegalArgumentException("Tried invoke URL#openConnection() but returned the object isn't HttpsURLConnection")
-        connection.apply {
-            connectTimeout = 10000
-            readTimeout = 10000
-        }
-        return connection
+fun openConnection(url: String): HttpsURLConnection {
+    println("Connecting to $url")
+    val connection = URL(url).openConnection() as? HttpsURLConnection
+        ?: throw IllegalArgumentException("Tried invoke URL#openConnection() but returned the object isn't HttpsURLConnection")
+    connection.apply {
+        connectTimeout = 10000
+        readTimeout = 10000
     }
+    return connection
 }

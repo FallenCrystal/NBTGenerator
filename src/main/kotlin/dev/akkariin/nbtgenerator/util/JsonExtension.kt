@@ -24,7 +24,7 @@ import com.google.gson.JsonPrimitive
 import com.google.gson.internal.LazilyParsedNumber
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
-object JsonUtil {
+object JsonExtension {
 
     private fun string0(excepted: String) = "Excepted $excepted but found {0} while getting {1}"
 

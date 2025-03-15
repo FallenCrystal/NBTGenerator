@@ -19,11 +19,11 @@ package dev.akkariin.nbtgenerator.data
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import dev.akkariin.nbtgenerator.util.HttpsUtil
-import dev.akkariin.nbtgenerator.util.JsonUtil.exceptedAsJsonObject
-import dev.akkariin.nbtgenerator.util.JsonUtil.int
-import dev.akkariin.nbtgenerator.util.JsonUtil.getObject
-import dev.akkariin.nbtgenerator.util.JsonUtil.string
+import dev.akkariin.nbtgenerator.util.JsonExtension.exceptedAsJsonObject
+import dev.akkariin.nbtgenerator.util.JsonExtension.int
+import dev.akkariin.nbtgenerator.util.JsonExtension.getObject
+import dev.akkariin.nbtgenerator.util.JsonExtension.string
+import dev.akkariin.nbtgenerator.util.readStringFromUrl
 import java.util.concurrent.CompletableFuture
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
@@ -40,7 +40,7 @@ data class MinecraftVersion(val id: String, val type: Type, val url: String, val
         require(type != Type.OLD_BETA && type != Type.OLD_ALPHA)
         { "Unsupported type $type" }
         return CompletableFuture.supplyAsync {
-            Data(this, Gson().fromJson(HttpsUtil.readString(url), JsonObject::class.java))
+            Data(this, Gson().fromJson(readStringFromUrl(url), JsonObject::class.java))
         }
     }
 

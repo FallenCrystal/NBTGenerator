@@ -26,20 +26,13 @@ import dev.akkariin.nbtgenerator.data.MultiException
 import dev.akkariin.nbtgenerator.protocol.ProtocolRegistry
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
-import dev.akkariin.nbtgenerator.util.FileUtil.existOrThrow
-import dev.akkariin.nbtgenerator.util.FileUtil.hasNonDirectory
-import dev.akkariin.nbtgenerator.util.FileUtil.removeAndCreate
-import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
-import dev.akkariin.nbtgenerator.util.JsonUtil.array
-import dev.akkariin.nbtgenerator.util.NbtUtil.getExcepted
-import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedCompound
-import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedString
-import dev.akkariin.nbtgenerator.util.NbtUtil.has
-import dev.akkariin.nbtgenerator.util.StringUtil.checkNamespace
+import dev.akkariin.nbtgenerator.tasks.impl.GenerateProtocolTagTask.IdGetter
+import dev.akkariin.nbtgenerator.tasks.impl.GenerateProtocolTagTask.TagValue.*
+import dev.akkariin.nbtgenerator.util.*
+import dev.akkariin.nbtgenerator.util.JsonExtension.array
 import net.kyori.adventure.nbt.BinaryTagIO
 import net.kyori.adventure.nbt.BinaryTagTypes
 import net.kyori.adventure.nbt.CompoundBinaryTag
-import net.kyori.adventure.nbt.IntArrayBinaryTag
 import org.fusesource.jansi.Ansi
 import java.io.File
 import java.io.FileReader
@@ -68,7 +61,6 @@ class GenerateProtocolTagTask(
         listOf("Make sure that the application can write to the file at the specified location.")
     }
 
-
     override fun initialize() = arrayOf(findFolder, collectTag, checkValid, remapping, saveToFile)
 
     override fun execute(parser: ArgsParser) {
@@ -86,11 +78,7 @@ class GenerateProtocolTagTask(
         } else {
             val compound = CompoundBinaryTag.builder()
             for ((category, tags) in result) {
-                val c2 = CompoundBinaryTag.builder()
-                for ((tag, value) in tags) {
-                    c2.put(tag, IntArrayBinaryTag.intArrayBinaryTag(*value))
-                }
-                compound.put("minecraft:$category", c2.build())
+                compound["minecraft:$category"] = tags.map { (key, value) -> key to value.toTag() }.toMap().toTag()
             }
             BinaryTagIO.writer().write(compound.build(), output.removeAndCreate().toPath(), BinaryTagIO.Compression.GZIP)
         }
@@ -129,44 +117,31 @@ class GenerateProtocolTagTask(
             if (protocolRegistries[path] == null) {
                 if (registryCodec == null) {
                     exception.addException(NullPointerException("Category $path is undefined in protocol registries. And the registry codec is not set."))
-                    continue
                 } else if (registryCodec.has(path, BinaryTagTypes.COMPOUND)) {
                     println(Ansi.ansi().fg(Ansi.Color.YELLOW)
                         .a("[WARN] $path is found from registry codec. This means the protocol id will changes because it depends registry codec.")
                         .fg(Ansi.Color.DEFAULT))
                 } else {
                     exception.addException(NullPointerException("Category $path are undefined in protocol registry and registry codec."))
-                    continue
                 }
             }
 
             val gson = Gson()
 
             fun processFolder(prefix: String, category: String, folder: File) {
-                for (tag in folder.listFiles()!!) {
-                    if (tag.isDirectory) {
-                        if (tag.hasNonDirectory()) {
-                            processFolder("$prefix${tag.name}/", category, tag)
-                        } else {
-                            for (subFolder in tag.listFiles()!!) {
-                                processFolder("$prefix${tag.name}/${subFolder.name}/", category, subFolder)
-                            }
-                        }
-                        continue
-                    }
-                    if (!tag.name.endsWith(".json")) {
-                        exception.addException(NullPointerException("Tag ${tag.name} is not a json file."))
-                        continue
-                    }
-                    try {
-                        val name = "${prefix}${tag.name.removeSuffix(".json")}"
-                        val json = gson.fromJson(FileReader(tag), JsonObject::class.java)
-                        val replace = json["replace"]?.asBoolean ?: false
-                        val values = json.array("values")
-                        map.computeIfAbsent(category) { mutableListOf() }.add(Tag(category, name, TagValue.parse(name, values), replace))
-                    } catch (e: Exception) {
-                        exception.addException(e)
-                        continue
+                folder.listFiles()!!.applyForEach {
+                    if (isDirectory) {
+                        if (hasNonDirectory())
+                            processFolder("$prefix${this.name}/", category, this)
+                        else listFiles()!!.forEach { subFolder -> processFolder("$prefix${this.name}/${subFolder.name}/", category, subFolder) }
+                    } else if (!name.endsWith(".json"))
+                        exception.addException(NullPointerException("Tag ${this.name} is not a json file."))
+                    else {
+                        map.computeIfAbsent(category) { mutableListOf() }.add(tryCatch(exception::addException) {
+                            val json = gson.fromJson(FileReader(this), JsonObject::class.java)
+                            val name = "${prefix}${this.name.removeSuffix(".json")}"
+                            Tag(category, name, parseTags(name, json.array("values")), json["replace"]?.asBoolean ?: false)
+                        } ?: return@applyForEach)
                     }
                 }
             }
@@ -181,36 +156,30 @@ class GenerateProtocolTagTask(
     private fun checkValid() {
         val exception = MultiException()
         for ((category, tags) in map.entries) {
-            for (tag in tags) {
-                class Parent(val parent: Parent?, val name: String, val value: Set<TagValue.OtherTag>)
-
-                fun check(tag: Tag, parent: Parent? = null) {
-                    val value = filterNotTag(tag)
-                    if (value.isEmpty()) return
-                    if (parent != null) {
-                        for (otherTag in value) {
-                            var p = parent
-                            while (p != null) {
-                                if (p.value.contains(otherTag)) {
-                                    exception.addException(IllegalArgumentException("Tag ${otherTag.tag} has illegal reference at ${parent.name}."))
-                                }
-                                p = p.parent
-                            }
-                        }
-                    }
-                    for ((otherTag, name) in value.map { otherTag -> tags.firstOrNull { it.name == otherTag.tag } to otherTag.tag }) {
-                        if (otherTag == null) {
-                            exception.addException(NullPointerException("Tag ${tag.name} tried reference tag $name, but not found at $category."))
-                            continue
-                        }
-                        check(otherTag, Parent(parent, tag.name, HashSet(value)))
-                    }
-                }
-
-                check(tag)
-            }
+            for (tag in tags) check(category, tags, exception, tag)
         }
         exception.throwIfNotEmpty()
+    }
+
+    private class ParentHolder(val parent: ParentHolder?, val name: String, val value: Set<OtherTag>)
+
+    private fun check(category: String, tags: List<Tag>, exception: MultiException, tag: Tag, parent: ParentHolder? = null) {
+        val otherTagReferences = filterNotTagReferences(tag).takeUnless { it.isEmpty() } ?: return
+        if (parent != null) {
+            otherTagReferences.applyForEach {
+                parent.invokeUntilNull(ParentHolder::parent) {
+                    if (value.contains(this@applyForEach))
+                        exception.addException(IllegalArgumentException("Tag ${this@applyForEach.tag} has illegal reference at ${parent.name}."))
+                }
+            }
+        }
+        for ((otherTag, name) in otherTagReferences.applyMap { tags.firstOrNull { it.name == this.tag } to this.tag }) {
+            if (otherTag == null) {
+                exception.addException(NullPointerException("Tag ${tag.name} tried reference tag $name, but not found at $category."))
+            } else {
+                check(category, tags, exception, otherTag, ParentHolder(parent, tag.name, HashSet(otherTagReferences)))
+            }
+        }
     }
 
     private fun mapping(): Map<String, Map<String, IntArray>> {
@@ -218,105 +187,78 @@ class GenerateProtocolTagTask(
         val remappedMap = mutableMapOf<String, MutableMap<String, IntArray>>()
         for ((category, tags) in this.map.entries) {
             val map = remappedMap.computeIfAbsent(category) { mutableMapOf() }
-
-            fun getIdGetter(): IdGetter {
-                val path = "minecraft:$category"
-                val pr = protocolRegistries[path]
-                if (pr != null) return IdGetter { key -> pr[key]!! }
-                val idMap = mutableMapOf<String, Int>()
-                registryCodec!!
-                    .getExceptedCompound(path)
-                    .getExcepted("value", BinaryTagTypes.LIST)
-                    .map { it as CompoundBinaryTag }
-                    .forEach { idMap[it.getExceptedString("name")] = it.getExcepted("id", BinaryTagTypes.INT).value() }
-                return IdGetter { key -> idMap[key]!! }
-            }
-
-            val idGetter = try { getIdGetter() } catch (e: Exception) {
-                exception.addException(e)
-                continue
-            }
-
+            val idGetter = tryCatch(exception::addException) { getIdGetter(category) } ?: continue
             for (tag in tags) {
-                try {
-                    val list = mutableSetOf<String>()
-                    fun fetch(t: Tag) {
-                        val m = t.value.map { if (it is TagValue.ComplexTag) it.tag else it }
-                        for (it in m) {
-                            if (it is TagValue.SimpleTag) {
-                                list.add(it.tag)
-                            } else if (it is TagValue.OtherTag) {
-                                fetch(tags.firstOrNull { otherTag -> otherTag.name == it.tag }
-                                    ?: throw NoSuchElementException("Tag ${t.name} referenced tag ${it.tag}. But not found at category $category"))
+                map[tag.name] = tryCatch(exception::addException) {
+                    mutableSetOf<String>()
+                        .apply {
+                            fun fetch(rootTag: Tag) {
+                                rootTag.value.exactTags().applyForEach { when (this) {
+                                    is SimpleTag -> this@apply.add(this.tag)
+                                    is OtherTag -> fetch(tags.firstOrNull { otherTag -> otherTag.name == this.tag }
+                                        ?: throw NoSuchElementException("Tag ${rootTag.name} referenced tag ${this.tag}. But not found at category $category"))
+                                }}
                             }
+                            fetch(tag)
                         }
-                    }
-                    fetch(tag)
-                    map[tag.name] = list.map(idGetter::id).toIntArray()
-                } catch (e: Exception) {
-                    exception.addException(e)
-                    continue
-                }
+                        .map(idGetter::id)
+                        .toIntArray()
+                } ?: continue
             }
         }
         exception.throwIfNotEmpty()
         return remappedMap
     }
 
-    fun interface IdGetter {
-        fun id(key: String): Int
+    fun interface IdGetter {  fun id(key: String): Int  }
+
+    private fun getIdGetter(category: String): IdGetter {
+        val path = "minecraft:$category"
+        val pr = protocolRegistries[path]
+        if (pr != null) return IdGetter { key -> pr[key]!! }
+        val idMap = mutableMapOf<String, Int>()
+        registryCodec!!
+            .getExceptedCompound(path)
+            .getExcepted("value", BinaryTagTypes.LIST)
+            .map { it as CompoundBinaryTag }
+            .forEach { idMap[it.getExceptedString("name")] = it.getExcepted("id", BinaryTagTypes.INT).value() }
+        return IdGetter { key -> idMap[key]!! }
     }
 
-    private fun filterNotTag(tag: Tag) = tag
-        .value
-        .map { if (it is TagValue.ComplexTag) it.tag else it }
-        .mapNotNull { it as? TagValue.OtherTag }
+    private fun filterNotTagReferences(tag: Tag) = tag.value.exactTags().filterIsInstance<OtherTag>()
 
     private data class Tag(val category: String, val name: String, val value: List<TagValue>, val replace: Boolean = false)
 
-    private interface TagValue {
-        fun valueAsString(): String
+    private abstract class TagValue(private val valueAsString: String) {
+       fun valueAsString(): String = this.valueAsString
+        data class OtherTag(val tag: String) : TagValue("#$tag")
+        data class SimpleTag(val tag: String) : TagValue(tag)
+        data class ComplexTag(val tag: TagValue, val require: Boolean = false) : TagValue(tag.valueAsString())
+    }
 
-        data class OtherTag(val tag: String) : TagValue {
-            override fun valueAsString() = "#$tag"
+    private fun namespaceToTag(namespace: String) =
+        if (namespace.startsWith("#")) {
+            OtherTag(namespace.removePrefix("#").also { it.checkNamespace(true) })
+        } else {
+            SimpleTag(namespace.also { it.checkNamespace(false) })
         }
 
-        data class SimpleTag(val tag: String) : TagValue {
-            override fun valueAsString() = tag
-        }
+    private fun List<TagValue>.exactTags() = applyMap { if (this is ComplexTag) tag else this }
 
-        data class ComplexTag(val tag: TagValue, val require: Boolean = false) : TagValue by tag
-
-        companion object {
-            private fun namespaceToTag(namespace: String): TagValue {
-                if (namespace.startsWith("#")) {
-                    val removePrefix = namespace.removePrefix("#")
-                    removePrefix.checkNamespace(true)
-                    return OtherTag(removePrefix)
-                } else {
-                    namespace.checkNamespace(false)
-                    return SimpleTag(namespace)
-                }
-            }
-
-            fun parse(name: String, values: JsonArray): List<TagValue> {
-                val tags = mutableListOf<TagValue>()
-                for (tag in values) {
-                    if (tag is JsonPrimitive) {
-                        require(tag.isString) { "Excepted string but found: ${tag.asString}" }
-                        tags.add(namespaceToTag(tag.asString))
-                    } else if (tag is JsonObject) {
-                        val id = tag.asString
-                        val require = tag["require"]?.asBoolean ?: false
-                        tags.add(ComplexTag(namespaceToTag(id), require))
-                    }
-                }
-                if (HashSet(tags).size != values.size()) {
-                    println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("[WARN] $name contains duplicated keys: $values").fg(Ansi.Color.DEFAULT))
-                }
-                return tags
+    private fun parseTags(name: String, values: JsonArray): List<TagValue> {
+        val tags = mutableListOf<TagValue>()
+        for (tag in values) {
+            if (tag is JsonPrimitive) {
+                require(tag.isString) { "Excepted string but found: ${tag.asString}" }
+                tags.add(namespaceToTag(tag.asString))
+            } else if (tag is JsonObject) {
+                tags.add(ComplexTag(namespaceToTag(tag.asString), tag["require"]?.asBoolean ?: false))
             }
         }
+        if (HashSet(tags).size != values.size()) {
+            println(Ansi.ansi().fg(Ansi.Color.YELLOW).a("[WARN] $name contains duplicated keys: $values").fg(Ansi.Color.DEFAULT))
+        }
+        return tags
     }
 
 }

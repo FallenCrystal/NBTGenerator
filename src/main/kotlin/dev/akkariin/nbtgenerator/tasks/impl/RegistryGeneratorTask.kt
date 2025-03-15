@@ -25,20 +25,7 @@ import dev.akkariin.nbtgenerator.args.ArgsParser
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
 import dev.akkariin.nbtgenerator.tasks.impl.RegistryGeneratorTask.ElementCleaner
-import dev.akkariin.nbtgenerator.util.FileUtil.hasDirectories
-import dev.akkariin.nbtgenerator.util.FileUtil.isMatched
-import dev.akkariin.nbtgenerator.util.FileUtil.removeAndCreate
-import dev.akkariin.nbtgenerator.util.FileUtil.toFilePath
-import dev.akkariin.nbtgenerator.util.NbtUtil.getExcepted
-import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedCompound
-import dev.akkariin.nbtgenerator.util.NbtUtil.getExceptedString
-import dev.akkariin.nbtgenerator.util.NbtUtil.has
-import dev.akkariin.nbtgenerator.util.NbtUtil.hasString
-import dev.akkariin.nbtgenerator.util.NbtUtil.removeKeys
-import dev.akkariin.nbtgenerator.util.NbtUtil.serializeTag
-import dev.akkariin.nbtgenerator.util.NbtUtil.toCompoundList
-import dev.akkariin.nbtgenerator.util.NbtUtil.toListTag
-import dev.akkariin.nbtgenerator.util.NbtUtil.toTag
+import dev.akkariin.nbtgenerator.util.*
 import net.kyori.adventure.nbt.*
 import org.fusesource.jansi.Ansi
 import java.io.File
@@ -312,23 +299,11 @@ class RegistryGeneratorTask(
             "minecraft:worldgen/biome",
             "minecraft:wolf_variant"
         )) : PathFilter {
-            override fun filter(file: File, type: String?): Boolean {
-                if (file.isDirectory) {
-                    if (file.isMatched("datapacks", "tags"))
-                        return true
-                } else if (file.name == "zero.json")
-                    return true
-                if (type != null) {
-                    for (it in filterList) {
-                        if (it.contains("/")) {
-                            if (it.startsWith(type))
-                                return false
-                        } else if (it == type)
-                            return false
-                    }
-                    return true
-                }
-                return false
+            override fun filter(file: File, type: String?) = when {
+                file.isDirectory -> file.isMatched("datapacks", "tags")
+                file.name == "zero.json" -> true
+                type == null -> false
+                else -> !filterList.any { it == type || (it.contains("/") && it.startsWith(type)) }
             }
         }
     }
@@ -366,7 +341,7 @@ class RegistryGeneratorTask(
                         .put("element", if (element.has("spawn_conditions", BinaryTagTypes.LIST)) {
                             mapOf(
                                 "assets" to element.getExceptedCompound("assets"),
-                                "spawn_conditions" to listOf(mapOf("priority" to 1.toTag()).toTag()).toListTag()
+                                "spawn_conditions" to mapOf("priority" to 1.toTag()).toTag().singletonTag(BinaryTagTypes.COMPOUND)
                             )
                         } else {
                             mapOf(
