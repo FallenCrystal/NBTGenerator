@@ -299,11 +299,16 @@ class RegistryGeneratorTask(
             "minecraft:worldgen/biome",
             "minecraft:wolf_variant"
         )) : PathFilter {
-            override fun filter(file: File, type: String?) = when {
-                file.isDirectory -> file.isMatched("datapacks", "tags")
-                file.name == "zero.json" -> true
-                type == null -> false
-                else -> !filterList.any { it == type || (it.contains("/") && it.startsWith(type)) }
+            override fun filter(file: File, type: String?): Boolean {
+                if (file.isMatched("datapacks", "tags") || file.name == "zero.json")
+                    return true
+                if (type == null) return false
+                for (element in filterList) {
+                    if (element.contains("/")) {
+                        if (element.startsWith(type)) return false
+                    } else if (element == type) return false
+                }
+                return true
             }
         }
     }
