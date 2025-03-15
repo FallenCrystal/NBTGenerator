@@ -23,6 +23,7 @@ import dev.akkariin.nbtgenerator.data.MultiException
 import dev.akkariin.nbtgenerator.tasks.Stage
 import dev.akkariin.nbtgenerator.tasks.Task
 import dev.akkariin.nbtgenerator.tasks.impl.*
+import dev.akkariin.nbtgenerator.util.invokeUntilNull
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
 import java.io.File
@@ -135,31 +136,39 @@ private fun runTask(task: Task, parser: ArgsParser, skippingTest: Boolean) {
         println("")
 
         fun print(e: Throwable) {
-            println("Caused by: ${e::class.java.name}: ${e.message ?: "null"}")
-            println("Stacktrace:")
-            for (stack in e.stackTrace) {
-                val split = stack.className.split(".")
-                val color = when {
-                    split.contains("MainKt") -> Ansi.Color.MAGENTA
-                    task::class.simpleName?.let { split.last().startsWith(it) } == true -> Ansi.Color.YELLOW
-                    else -> Ansi.Color.CYAN
+            var textOffset = 0
+            e.invokeUntilNull(Throwable::cause) {
+                val prefix = " ".repeat(textOffset)
+                println("${prefix}Caused by: ${e::class.java.name}: ${e.message ?: "null"}")
+                println("${prefix}Stacktrace:")
+                for (stack in e.stackTrace) {
+                    val split = stack.className.split(".")
+                    val color = when {
+                        split.contains("MainKt") -> Ansi.Color.MAGENTA
+                        task::class.simpleName?.let { split.last().startsWith(it) } == true -> Ansi.Color.YELLOW
+                        else -> Ansi.Color.CYAN
+                    }
+                    println(Ansi
+                        .ansi()
+                        .a(prefix)
+                        .fg(color)
+                        .a("  ${stack.classLoaderName}@${stack.className}#${stack.methodName}")
+                        .fg(Ansi.Color.DEFAULT)
+                        .a("(${if (stack.isNativeMethod) "Native Method" else "${stack.fileName ?: "?"}:${stack.lineNumber}"})")
+                    )
                 }
-                println(Ansi
-                    .ansi()
-                    .fg(color)
-                    .a("  ${stack.classLoaderName}@${stack.className}#${stack.methodName}")
-                    .fg(Ansi.Color.DEFAULT)
-                    .a("(${if (stack.isNativeMethod) "Native Method" else "${stack.fileName ?: "?"}:${stack.lineNumber}"})")
-                )
+                println("")
+                textOffset += 2
             }
-            println("")
-            e.cause?.let(::print)
         }
 
         if (t is MultiException) {
             println(Ansi.ansi().fg(Ansi.Color.RED).a("Multi exceptions thrown!").fg(Ansi.Color.DEFAULT))
             println("")
             print(t)
+            println("")
+            println("Exceptions:")
+            println("")
             t.getExceptions().forEach(::print)
         } else {
             print(t)
