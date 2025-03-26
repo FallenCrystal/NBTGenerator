@@ -297,7 +297,13 @@ class RegistryGeneratorTask(
             "minecraft:dimension_type",
             "minecraft:damage_type",
             "minecraft:worldgen/biome",
-            "minecraft:wolf_variant"
+            "minecraft:wolf_variant",
+            "minecraft:frog_variant",
+            "minecraft:pig_variant",
+            "minecraft:wolf_sound_variant",
+            "minecraft:cat_variant",
+            "minecraft:chicken_variant",
+            "minecraft:cow_variant"
         )) : PathFilter {
             override fun filter(file: File, type: String?): Boolean {
                 if (file.isMatched("datapacks", "tags") || file.name == "zero.json")
